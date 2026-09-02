@@ -1,0 +1,128 @@
+// Sistema de Gestión de Colaboradores — Tutea
+// Modelo de datos según la especificación (§3 del spec).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // Supabase: la pooled para consultar, la directa para migrar.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Area {
+  operativo
+  comercial
+  administrativo
+}
+
+enum DiaSemana {
+  lunes
+  martes
+  miercoles
+  jueves
+  viernes
+  sabado
+}
+
+/// Colaborador. Se usa soft delete (`activo`) para no romper el historial.
+model Collaborator {
+  id                     String   @id @default(uuid())
+  nombre                 String
+  area                   Area
+  /// Data URL base64 de la foto, ya redimensionada a 400x400 en el navegador.
+  foto                   String?  @db.Text
+  /// Fecha completa: día, mes y año. El día es necesario para el módulo de
+  /// cumpleaños; el año permite calcular la edad.
+  fechaNacimiento        DateTime @map("fecha_nacimiento") @db.Date
+  /// Cupo por defecto con el que se abre cada mes. El cupo realmente vigente
+  /// vive en LifeMonthlyPeriod.
+  vidasMensualesDefault  Int      @default(2) @map("vidas_mensuales_default")
+  activo                 Boolean  @default(true)
+  creadoEn               DateTime @default(now()) @map("creado_en")
+  actualizadoEn          DateTime @updatedAt @map("actualizado_en")
+
+  bloques   ScheduleBlock[]
+  historial ScheduleHistory[]
+  periodos  LifeMonthlyPeriod[]
+  usos      LifeUsage[]
+
+  @@index([activo])
+  @@map("collaborators")
+}
+
+/// Horario vigente. No guarda versiones: al editar se reemplazan los bloques y
+/// la versión anterior queda como snapshot en ScheduleHistory.
+model ScheduleBlock {
+  id             String    @id @default(uuid())
+  colaboradorId  String    @map("colaborador_id")
+  diaSemana      DiaSemana @map("dia_semana")
+  /// Minutos desde medianoche (0–1440), hora local de Lima. Entero en vez de
+  /// `time` para comparar y detectar solapamientos sin líos de zona horaria.
+  horaInicioMin  Int       @map("hora_inicio_min")
+  horaFinMin     Int       @map("hora_fin_min")
+
+  colaborador Collaborator @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+
+  @@index([colaboradorId, diaSemana])
+  @@map("schedule_blocks")
+}
+
+/// Snapshot completo del horario antes y después de cada cambio.
+model ScheduleHistory {
+  id               String   @id @default(uuid())
+  colaboradorId    String   @map("colaborador_id")
+  fechaCambio      DateTime @default(now()) @map("fecha_cambio")
+  horarioAnterior  Json     @map("horario_anterior")
+  horarioNuevo     Json     @map("horario_nuevo")
+
+  colaborador Collaborator @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+
+  @@index([colaboradorId, fechaCambio])
+  @@map("schedule_history")
+}
+
+/// Período mensual de vidas. `cerradoEn = null` significa período en curso.
+///
+/// Puede haber MÁS DE UN período para el mismo mes: un reinicio manual a mitad
+/// de mes cierra el vigente —que queda archivado con sus usos— y abre uno
+/// nuevo. Lo que sí es único es el período abierto por colaborador, garantizado
+/// con un índice único parcial (ver la migración habilitar_reinicio_manual);
+/// Prisma no sabe expresar índices parciales, por eso vive en SQL.
+model LifeMonthlyPeriod {
+  id              String    @id @default(uuid())
+  colaboradorId   String    @map("colaborador_id")
+  /// Formato invariante YYYY-MM, calculado en zona horaria America/Lima.
+  mesPeriodo      String    @map("mes_periodo") @db.VarChar(7)
+  vidasAsignadas  Int       @map("vidas_asignadas")
+  abiertoEn       DateTime  @default(now()) @map("abierto_en")
+  cerradoEn       DateTime? @map("cerrado_en")
+
+  colaborador Collaborator @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  usos        LifeUsage[]
+
+  @@index([colaboradorId, mesPeriodo])
+  @@index([mesPeriodo])
+  @@map("life_monthly_periods")
+}
+
+/// Uso de una vida (permiso). Si no queda cupo se registra igual y se marca
+/// como excedido al presentarlo; nunca se bloquea el registro.
+model LifeUsage {
+  id             String   @id @default(uuid())
+  colaboradorId  String   @map("colaborador_id")
+  periodoId      String   @map("periodo_id")
+  fecha          DateTime @db.Date
+  /// Dato sensible: no se expone nunca en la vista pública.
+  motivo         String
+  registradoEn   DateTime @default(now()) @map("registrado_en")
+
+  colaborador Collaborator      @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  periodo     LifeMonthlyPeriod @relation(fields: [periodoId], references: [id], onDelete: Cascade)
+
+  @@index([periodoId])
+  @@index([colaboradorId, fecha])
+  @@map("life_usages")
+}

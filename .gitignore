@@ -1,0 +1,14 @@
+# Dependencias y artefactos de build (cada app tiene además su propio .gitignore)
+node_modules/
+.next/
+out/
+
+# Variables de entorno: nunca al repositorio
+.env
+.env.*
+!.env.example
+
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store

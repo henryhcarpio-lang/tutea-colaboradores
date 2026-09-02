@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* Identidad de Tutea según el brandbook.
+   Principales:  #154DB2 (Pantone 2935 C) · #22D166 (Pantone 7480 C)
+   Secundarios:  #029336 (Pantone 347 C)  · #002A66 (Pantone 294 C) */
+:root {
+  --azul: #154db2;
+  --verde: #22d166;
+  --verde-oscuro: #029336;
+  --azul-marino: #002a66;
+
+  /* El azul principal es el color de acción: enlaces, nav activo, botones. */
+  --acento: var(--azul);
+  --acento-suave: #eaf1fd;
+  --acento-fuerte: #103e91;
+
+  /* El verde claro tiene ~1.9:1 sobre blanco: sirve como relleno o acento,
+     nunca para texto. Para texto verde va --verde-oscuro. */
+  --exito: var(--verde-oscuro);
+  --exito-suave: #e6f8ee;
+
+  --fondo: #f5f7fa;
+  --superficie: #ffffff;
+  --texto: #10192b;
+  --texto-suave: #5c6880;
+  --borde: #e0e5ee;
+  --peligro: #c81e3a;
+  --peligro-suave: #fdeaee;
+
+  /* Áreas. Operativo y administrativo son ambos azules de marca; se separan
+     por luminosidad y por el fondo teñido de cada insignia. */
+  --area-operativo: #154db2;
+  --area-operativo-suave: #eaf1fd;
+  --area-comercial: #029336;
+  --area-comercial-suave: #e6f8ee;
+  --area-administrativo: #002a66;
+  --area-administrativo-suave: #e7ecf4;
+}
+
+@theme inline {
+  --color-azul: var(--azul);
+  --color-verde: var(--verde);
+  --color-verde-oscuro: var(--verde-oscuro);
+  --color-azul-marino: var(--azul-marino);
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-borde: var(--borde);
+  --color-acento: var(--acento);
+  --color-acento-suave: var(--acento-suave);
+  --color-acento-fuerte: var(--acento-fuerte);
+  --color-exito: var(--exito);
+  --color-exito-suave: var(--exito-suave);
+  --color-peligro: var(--peligro);
+  --color-peligro-suave: var(--peligro-suave);
+  --font-sans: var(--font-montserrat);
+}
+
+body {
+  background: var(--fondo);
+  color: var(--texto);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Transición suave por defecto en elementos interactivos (Entregable 7). */
+a,
+button {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    border-color 150ms ease,
+    opacity 150ms ease;
+}
+
+/* Foco de teclado en el azul de la marca. Sin esto el navegador dibuja su
+   propio anillo naranja, ajeno a la identidad y de contraste desparejo.
+   Solo :focus-visible: quien navega con el mouse no ve el anillo. */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--acento-suave);
+  color: var(--acento-fuerte);
+}
+
+/* La cuadrícula de horarios se desplaza dentro de su caja: que la barra no
+   tape contenido en macOS. */
+.overflow-x-auto {
+  scrollbar-width: thin;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aparecer {
+  animation: aparecer 260ms ease both;
+}
+
+/* El corazón se sacude y se apaga al gastarse (Entregable 5). */
+@keyframes romperse {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.35) rotate(-9deg);
+  }
+  50% {
+    transform: scale(0.9) rotate(7deg);
+  }
+  75% {
+    transform: scale(1.1) rotate(-4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+.romperse {
+  animation: romperse 520ms ease-out;
+  transform-origin: center;
+}
+
+/* Quien pidió menos movimiento no recibe la sacudida. */
+@media (prefers-reduced-motion: reduce) {
+  .romperse,
+  .aparecer {
+    animation: none;
+  }
+
+  a,
+  button {
+    transition: none;
+  }
+}

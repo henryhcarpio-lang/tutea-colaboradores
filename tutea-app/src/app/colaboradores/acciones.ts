@@ -1,0 +1,126 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { Area } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { exigirAdmin } from "@/lib/auth";
+import { hoyEnLima } from "@/lib/fecha";
+import { LISTA_AREAS } from "@/lib/areas";
+
+export type EstadoColaborador = { error?: string; ok?: boolean };
+
+const LIMITE_FOTO_BYTES = 300 * 1024;
+const FORMATOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
+
+type DatosValidados = {
+  nombre: string;
+  area: Area;
+  fechaNacimiento: Date;
+  vidasMensualesDefault: number;
+  foto: string | null;
+};
+
+/**
+ * Valida en el servidor, no solo en el formulario: las acciones son un punto
+ * de entrada público y el navegador puede mandar cualquier cosa.
+ */
+function validar(datos: FormData): DatosValidados | string {
+  const nombre = String(datos.get("nombre") ?? "").trim();
+  if (nombre.length < 2) return "El nombre es obligatorio.";
+  if (nombre.length > 80) return "El nombre es demasiado largo.";
+
+  const area = String(datos.get("area") ?? "");
+  if (!LISTA_AREAS.includes(area as Area)) return "Elegí un área válida.";
+
+  const fechaTexto = String(datos.get("fechaNacimiento") ?? "");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) {
+    return "Ingresá la fecha de nacimiento (día, mes y año).";
+  }
+  // Se arma en UTC a medianoche para que la columna `date` guarde exactamente
+  // el día escrito, sin correrse por zona horaria.
+  const fechaNacimiento = new Date(`${fechaTexto}T00:00:00.000Z`);
+  if (Number.isNaN(fechaNacimiento.getTime())) return "La fecha no es válida.";
+  if (fechaNacimiento > hoyEnLima()) {
+    return "La fecha de nacimiento no puede estar en el futuro.";
+  }
+  if (fechaNacimiento.getUTCFullYear() < 1940) {
+    return "Revisá el año de nacimiento.";
+  }
+
+  const vidas = Number(datos.get("vidasMensualesDefault"));
+  if (!Number.isInteger(vidas) || vidas < 0 || vidas > 10) {
+    return "El cupo de vidas tiene que ser un número entero entre 0 y 10.";
+  }
+
+  const fotoCruda = String(datos.get("foto") ?? "").trim();
+  let foto: string | null = null;
+  if (fotoCruda) {
+    const encabezado = /^data:([\w/+.-]+);base64,/.exec(fotoCruda);
+    if (!encabezado || !FORMATOS_FOTO.includes(encabezado[1])) {
+      return "La foto tiene que ser una imagen JPG, PNG o WebP.";
+    }
+    if (Buffer.byteLength(fotoCruda, "utf8") > LIMITE_FOTO_BYTES) {
+      return "La foto es demasiado pesada. Probá con otra imagen.";
+    }
+    foto = fotoCruda;
+  }
+
+  return { nombre, area: area as Area, fechaNacimiento, vidasMensualesDefault: vidas, foto };
+}
+
+function refrescar() {
+  revalidatePath("/colaboradores");
+  revalidatePath("/");
+}
+
+export async function crearColaborador(
+  _previo: EstadoColaborador,
+  datos: FormData,
+): Promise<EstadoColaborador> {
+  await exigirAdmin();
+
+  const validado = validar(datos);
+  if (typeof validado === "string") return { error: validado };
+
+  await prisma.collaborator.create({ data: validado });
+  refrescar();
+  return { ok: true };
+}
+
+export async function editarColaborador(
+  _previo: EstadoColaborador,
+  datos: FormData,
+): Promise<EstadoColaborador> {
+  await exigirAdmin();
+
+  const id = String(datos.get("id") ?? "");
+  if (!id) return { error: "Falta identificar al colaborador." };
+
+  const validado = validar(datos);
+  if (typeof validado === "string") return { error: validado };
+
+  // Campo vacío al editar = "no cambiar la foto", no "borrar la foto".
+  // Para sacarla hay un botón propio que manda quitarFoto.
+  const quitarFoto = datos.get("quitarFoto") === "1";
+  const { foto, ...resto } = validado;
+
+  await prisma.collaborator.update({
+    where: { id },
+    data: quitarFoto ? { ...resto, foto: null } : foto ? validado : resto,
+  });
+  refrescar();
+  return { ok: true };
+}
+
+/** Baja lógica: el historial de horarios y vidas apunta a estas filas. */
+export async function desactivarColaborador(id: string): Promise<void> {
+  await exigirAdmin();
+  await prisma.collaborator.update({ where: { id }, data: { activo: false } });
+  refrescar();
+}
+
+export async function reactivarColaborador(id: string): Promise<void> {
+  await exigirAdmin();
+  await prisma.collaborator.update({ where: { id }, data: { activo: true } });
+  refrescar();
+}

@@ -1,0 +1,157 @@
+# Sistema de Gestión de Colaboradores — Tutea
+
+Aplicación web interna: horarios, vidas (permisos mensuales) y cumpleaños del
+equipo. La especificación completa está en
+[`../tutea-sistema-colaboradores-spec.md`](../tutea-sistema-colaboradores-spec.md).
+
+## Estado
+
+Los siete entregables están terminados. El sistema está listo para cargar al
+equipo real y desplegarse.
+
+## Cómo levantarlo
+
+```bash
+npm install
+cp .env.example .env   # completar las tres variables
+npx prisma migrate dev --name init
+npm run dev
+```
+
+Queda en http://localhost:3000. La clave de admin es la que pongas en
+`ADMIN_PASSWORD`.
+
+## Variables de entorno
+
+| Variable | Para qué |
+|---|---|
+| `DATABASE_URL` | Conexión *pooled* de Supabase (puerto 6543), para consultar |
+| `DIRECT_URL` | Conexión *directa* de Supabase (puerto 5432), para migrar |
+| `ADMIN_PASSWORD` | Clave única de gerencia |
+| `SESSION_SECRET` | Secreto para firmar la cookie de sesión |
+
+Generar el secreto:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+## Base de datos
+
+Postgres en Supabase. **No usar SQLite**: en Vercel el disco es efímero y de
+solo lectura, así que la base se perdería en cada deploy.
+
+El esquema vive en [`prisma/schema.prisma`](prisma/schema.prisma) y refleja §3
+del spec. Las fotos se guardan como base64 dentro de la propia base: para ~15
+personas es trivial y no hace falta ningún servicio de archivos.
+
+## Cómo está organizado
+
+```
+src/
+├── app/
+│   ├── page.tsx            Inicio (vista pública, sin login)
+│   ├── horarios/           Cuadrícula semanal (dos vistas) y editor de horarios
+│   │   └── historial/      Cambios de horario, con el antes y el después
+│   ├── vidas/              Corazones, permisos y cierre mensual
+│   │   └── historial/      Meses ya archivados
+│   ├── cumpleanos/         Cumpleaños del mes y aviso de los próximos 7 días
+│   ├── colaboradores/      CRUD de colaboradores — única sección que exige admin
+│   ├── ingresar/           Login de gerencia
+│   └── api/sesion/salir/   Cierre de sesión
+├── components/
+│   ├── navegacion.tsx      Barra superior; recibe si hay sesión admin
+│   ├── avatar.tsx          Ícono redondo del colaborador (foto o iniciales)
+│   ├── confeti.tsx         Saludo y confeti el día del cumpleaños
+│   ├── insignia-area.tsx   Etiqueta de área con su color
+│   └── seccion.tsx         Encabezado y estado vacío compartidos
+└── lib/
+    ├── prisma.ts           Cliente único de Prisma
+    ├── auth.ts             Sesión de admin (cookie httpOnly firmada)
+    ├── areas.ts            Áreas y sus colores de marca
+    ├── horarios.ts         Días, conversión de horas y detección de solapamientos
+    ├── historial.ts        Lectura y comparación de snapshots de horario
+    ├── vidas.ts            Apertura y cierre perezoso de períodos mensuales
+    ├── cumpleanos.ts       Edad, días que faltan y ventana de aviso
+    ├── imagen.ts           Redimensionado de fotos a 400x400 en el navegador
+    └── fecha.ts            Todo el manejo de America/Lima
+```
+
+## Identidad visual
+
+Los colores y la tipografía salen del brandbook de Tutea: azul `#154DB2` y verde
+`#22D166` como principales, verde `#029336` y azul marino `#002A66` como
+secundarios, todo en Montserrat. Están centralizados como variables CSS en
+[`globals.css`](src/app/globals.css): **cambiá el color ahí, nunca en cada
+componente**.
+
+El verde claro tiene ~1.9:1 de contraste sobre blanco, así que se usa solo como
+relleno o acento; para texto verde va el `#029336`.
+
+La otra tipografía del brandbook, Averta, es comercial y no está en Google
+Fonts. Si Tutea tiene la licencia y los `.woff2`, se suma como fuente local sin
+tocar nada más.
+
+## Cómo se guarda un horario
+
+`ScheduleBlock` guarda siempre el horario **vigente**, nunca versiones. Al
+guardar, la acción borra los bloques del colaborador y los vuelve a crear dentro
+de una transacción, y deja la versión anterior como snapshot en
+`ScheduleHistory`, que es lo que alimenta la vista de historial.
+
+Los snapshots viven en una columna JSON, así que se **validan al leerlos**
+(`src/lib/historial.ts`) en vez de confiar en el tipo: nada garantiza que una
+fila vieja tenga la forma que espera el código de hoy.
+
+Las horas se almacenan como **minutos desde medianoche** (un entero), no como
+`time`: comparar bloques y detectar solapamientos queda en aritmética simple,
+sin zonas horarias de por medio.
+
+## Cómo funciona el mes de vidas
+
+No hay cron ni proceso en segundo plano. Al entrar a Vidas, `asegurarPeriodos()`
+cierra los períodos que quedaron abiertos en meses anteriores y abre el del mes
+corriente. Es idempotente, así que correrlo en cada carga no molesta, y funciona
+igual en local que en producción.
+
+Un período cerrado **nunca se toca**: es la foto del mes. El reinicio manual
+cierra el vigente y abre uno nuevo del mismo mes, sin borrar nada. Por eso puede
+haber varios períodos por mes, y lo que es único es el período *abierto* por
+colaborador — con un índice parcial de Postgres que Prisma no sabe expresar
+(vive en la migración `habilitar_reinicio_manual`).
+
+El `motivo` de cada permiso **no se envía al navegador** si no hay sesión de
+admin. Ocultarlo con CSS dejaría el dato al alcance de cualquiera que abriera el
+inspector.
+
+## El saludo de cumpleaños
+
+Vive en el layout, no en la sección de Cumpleaños: el spec pide que aparezca "al
+entrar a la plataforma", sea cual sea la página por la que se entra. El confeti
+se dispara **una vez por día y por navegador** (marca en `sessionStorage`);
+repetirlo en cada navegación lo convertiría en una molestia. El saludo en sí se
+muestra siempre y se puede cerrar.
+
+Quien tiene `prefers-reduced-motion` activado recibe el saludo sin confeti.
+
+## Accesibilidad y detalles de interfaz
+
+El anillo de foco de teclado es el azul de la marca, definido una sola vez en
+`globals.css` con `:focus-visible` — quien navega con el mouse no lo ve, quien
+navega con teclado sí. Todas las animaciones y transiciones se apagan con
+`prefers-reduced-motion`.
+
+Cada sección tiene su propio `loading.tsx`: la base está en Oregon y desde Perú
+cada consulta tarda unas décimas, así que sin el esqueleto la pantalla se
+quedaba congelada en la sección anterior y parecía que el clic no había
+funcionado.
+
+## Dos decisiones que conviene no revertir
+
+**Las rutas son las mismas para todos.** No hay un árbol `/admin` paralelo: cada
+página consulta `esAdmin()` y decide si dibuja los controles de edición.
+Duplicar las vistas garantizaría que la pública y la privada se desincronicen.
+
+**Las fechas se calculan en `America/Lima`, nunca con la hora del servidor.**
+Vercel corre en UTC; sin `src/lib/fecha.ts` el confeti de cumpleaños saldría un
+día antes y el corte mensual de vidas caería fuera de lugar.
