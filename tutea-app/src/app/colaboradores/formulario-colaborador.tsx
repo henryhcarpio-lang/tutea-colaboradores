@@ -5,6 +5,8 @@ import type { Area, Collaborator } from "@prisma/client";
 import { AREAS, LISTA_AREAS } from "@/lib/areas";
 import { redimensionarACuadrado } from "@/lib/imagen";
 import { Avatar } from "@/components/avatar";
+import { EditorBloques } from "@/app/horarios/editor-bloques";
+import { duracionLegible, totalSemanal, type BloqueSimple } from "@/lib/horarios";
 import {
   crearColaborador,
   editarColaborador,
@@ -43,6 +45,10 @@ export function FormularioColaborador({
     colaborador ? aISO(colaborador.fechaNacimiento) : "",
   );
   const [quitarFoto, setQuitarFoto] = useState(false);
+  // Solo al crear: el alta permite dejar la semana cargada de una vez, sin
+  // pasar después por la cuadrícula.
+  const [bloques, setBloques] = useState<BloqueSimple[]>([]);
+  const [errorHorario, setErrorHorario] = useState<string | null>(null);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
 
@@ -77,6 +83,9 @@ export function FormularioColaborador({
       {editando && <input type="hidden" name="id" value={colaborador!.id} />}
       <input type="hidden" name="foto" value={foto ?? ""} />
       <input type="hidden" name="quitarFoto" value={quitarFoto ? "1" : "0"} />
+      {!editando && (
+        <input type="hidden" name="bloques" value={JSON.stringify(bloques)} />
+      )}
 
       <div className="mt-6 flex flex-col gap-6 sm:flex-row">
         {/* Foto */}
@@ -189,16 +198,38 @@ export function FormularioColaborador({
         </div>
       </div>
 
-      {estado.error && (
+      {!editando && (
+        <div className="mt-8 border-t border-borde pt-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 className="text-sm font-semibold">Horario semanal</h3>
+            <p className="text-xs text-texto-suave">
+              {totalSemanal(bloques) > 0
+                ? `${duracionLegible(totalSemanal(bloques))} por semana`
+                : "Opcional: se puede cargar después"}
+            </p>
+          </div>
+          <div className="mt-4">
+            <EditorBloques
+              bloquesIniciales={[]}
+              onCambio={(nuevos, error) => {
+                setBloques(nuevos);
+                setErrorHorario(error);
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {(errorHorario || estado.error) && (
         <p role="alert" className="mt-5 text-sm text-peligro">
-          {estado.error}
+          {errorHorario ?? estado.error}
         </p>
       )}
 
       <div className="mt-6 flex items-center gap-3">
         <button
           type="submit"
-          disabled={pendiente}
+          disabled={pendiente || Boolean(errorHorario)}
           className="rounded-xl bg-acento px-4 py-2.5 text-sm font-semibold text-white hover:bg-acento-fuerte disabled:opacity-60"
         >
           {pendiente

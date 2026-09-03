@@ -2,8 +2,9 @@ import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EncabezadoSeccion, EstadoVacio } from "@/components/seccion";
-import { etiquetaMesPeriodo, mesPeriodoActual, partesEnLima } from "@/lib/fecha";
+import { etiquetaMesPeriodo, hoyEnLima, mesPeriodoActual, partesEnLima } from "@/lib/fecha";
 import { calcularCumple, cuentaRegresiva, DIAS_DE_AVISO } from "@/lib/cumpleanos";
+import { TarjetaCumple } from "./tarjeta-cumple";
 
 export const metadata = { title: "Cumpleaños" };
 
@@ -32,11 +33,17 @@ export default async function Cumpleanos() {
     .filter((c) => c.cumple.mes === mesActual)
     .sort((a, b) => a.cumple.dia - b.cumple.dia);
 
-  // El aviso, en cambio, mira los próximos 7 días aunque caigan en el mes que
-  // viene: un cumpleaños del 2 de octubre importa el 28 de septiembre.
-  const proximos = conCumple
-    .filter((c) => c.cumple.esHoy || c.cumple.seViene)
+  const deHoy = conCumple.filter((c) => c.cumple.esHoy);
+
+  // El aviso mira los próximos 7 días aunque caigan en el mes que viene: un
+  // cumpleaños del 2 de octubre importa el 28 de septiembre.
+  const seVienen = conCumple
+    .filter((c) => c.cumple.seViene)
     .sort((a, b) => a.cumple.faltan - b.cumple.faltan);
+
+  // Estabiliza el saludo durante todo el día, y evita que difieran servidor y
+  // navegador.
+  const semilla = hoyEnLima().toISOString().slice(0, 10);
 
   const mes = etiquetaMesPeriodo(mesPeriodoActual());
 
@@ -47,15 +54,27 @@ export default async function Cumpleanos() {
         descripcion={`Quién cumple años en ${mes}.`}
       />
 
-      {proximos.length > 0 && (
+      {/* Quien cumple hoy se lleva la tarjeta grande, con su foto al centro.
+          El resto de los avisos van en la lista compacta de abajo. */}
+      {deHoy.map((c) => (
+        <TarjetaCumple
+          key={c.id}
+          nombre={c.nombre}
+          foto={c.foto}
+          area={c.area}
+          edad={c.cumple.edad}
+          fecha={c.cumple.etiqueta}
+          semilla={semilla}
+        />
+      ))}
+
+      {seVienen.length > 0 && (
         <section className="aparecer mb-8 rounded-2xl border border-acento/25 bg-acento-suave p-5">
           <h2 className="text-sm font-semibold text-acento">
-            {proximos.some((c) => c.cumple.esHoy)
-              ? "Hoy hay cumpleaños"
-              : `En los próximos ${DIAS_DE_AVISO} días`}
+            {`En los próximos ${DIAS_DE_AVISO} días`}
           </h2>
           <ul className="mt-4 space-y-3">
-            {proximos.map((c) => (
+            {seVienen.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-3">
                 <Avatar
                   nombre={c.nombre}
@@ -64,10 +83,7 @@ export default async function Cumpleanos() {
                   tamano="md"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold">
-                    {c.nombre}
-                    {c.cumple.esHoy && <span aria-hidden> 🎉</span>}
-                  </p>
+                  <p className="font-semibold">{c.nombre}</p>
                   <p className="text-sm text-texto-suave">
                     Cumple {c.cumple.edad}{" "}
                     {c.cumple.edad === 1 ? "año" : "años"} el{" "}

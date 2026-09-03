@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { exigirAdmin } from "@/lib/auth";
 import { hoyEnLima } from "@/lib/fecha";
 import { LISTA_AREAS } from "@/lib/areas";
+import { CLAVES_DIA, DIAS, validarDia, type BloqueSimple } from "@/lib/horarios";
 
 export type EstadoColaborador = { error?: string; ok?: boolean };
 
@@ -70,7 +71,50 @@ function validar(datos: FormData): DatosValidados | string {
 
 function refrescar() {
   revalidatePath("/colaboradores");
+  revalidatePath("/horarios");
+  revalidatePath("/cumpleanos");
+  revalidatePath("/vidas");
   revalidatePath("/");
+}
+
+/**
+ * El alta también acepta el horario, para no obligar a crear la persona y
+ * después ir a otra pantalla a cargarle la semana.
+ */
+function validarBloques(crudo: string): BloqueSimple[] | string {
+  if (!crudo) return [];
+
+  let bloques: unknown;
+  try {
+    bloques = JSON.parse(crudo);
+  } catch {
+    return "No se pudo leer el horario. Volvé a intentarlo.";
+  }
+  if (!Array.isArray(bloques)) return "El horario no es válido.";
+  if (bloques.length > 60) return "Demasiados bloques en la semana.";
+
+  const limpios = bloques as BloqueSimple[];
+  for (const b of limpios) {
+    if (
+      !CLAVES_DIA.includes(b?.diaSemana) ||
+      !Number.isInteger(b?.horaInicioMin) ||
+      !Number.isInteger(b?.horaFinMin) ||
+      b.horaInicioMin < 0 ||
+      b.horaFinMin > 24 * 60
+    ) {
+      return "Hay un bloque de horario con datos inválidos.";
+    }
+  }
+
+  for (const dia of DIAS) {
+    const error = validarDia(
+      limpios.filter((b) => b.diaSemana === dia.clave),
+      dia.etiqueta,
+    );
+    if (error) return error;
+  }
+
+  return limpios;
 }
 
 export async function crearColaborador(
@@ -82,7 +126,43 @@ export async function crearColaborador(
   const validado = validar(datos);
   if (typeof validado === "string") return { error: validado };
 
-  await prisma.collaborator.create({ data: validado });
+  const bloques = validarBloques(String(datos.get("bloques") ?? ""));
+  if (typeof bloques === "string") return { error: bloques };
+
+  // Persona y horario se guardan juntos: si algo falla, no queda un
+  // colaborador a medio crear.
+  await prisma.$transaction(async (tx) => {
+    const creado = await tx.collaborator.create({ data: validado });
+    if (bloques.length === 0) return;
+
+    await tx.scheduleBlock.createMany({
+      data: bloques.map((b) => ({
+        colaboradorId: creado.id,
+        diaSemana: b.diaSemana,
+        horaInicioMin: b.horaInicioMin,
+        horaFinMin: b.horaFinMin,
+      })),
+    });
+    // Mismo snapshot que escribe el editor de horarios, para que el historial
+    // arranque desde la primera asignación.
+    await tx.scheduleHistory.create({
+      data: {
+        colaboradorId: creado.id,
+        horarioAnterior: [],
+        horarioNuevo: CLAVES_DIA.flatMap((dia) =>
+          bloques
+            .filter((b) => b.diaSemana === dia)
+            .sort((a, b) => a.horaInicioMin - b.horaInicioMin)
+            .map((b) => ({
+              diaSemana: dia,
+              inicio: b.horaInicioMin,
+              fin: b.horaFinMin,
+            })),
+        ),
+      },
+    });
+  });
+
   refrescar();
   return { ok: true };
 }

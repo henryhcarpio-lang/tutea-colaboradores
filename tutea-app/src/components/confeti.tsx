@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import confetti from "canvas-confetti";
-
-// Los colores de la marca, para que la celebración se sienta parte del sistema.
-const COLORES = ["#154DB2", "#22D166", "#029336", "#002A66"];
+import { PartyPopper, X } from "lucide-react";
+import { lanzarConfeti } from "@/lib/celebracion";
 
 /**
  * Celebración al entrar a la plataforma el día del cumpleaños (Entregable 6).
  *
- * El saludo se muestra apenas carga la página; el confeti se dispara una sola
- * vez por día y por navegador, porque volver a lanzarlo en cada navegación
- * entre secciones pasaría de fiesta a molestia.
+ * El saludo se muestra apenas carga la página y el confeti se dispara solo una
+ * vez por día y por navegador: repetirlo en cada navegación entre secciones
+ * pasaría de fiesta a molestia. Pero el saludo es un botón, así que quien
+ * quiera volver a verlo solo tiene que tocarlo.
  */
 export function Confeti({
   nombres,
@@ -35,34 +34,7 @@ export function Confeti({
       // navegar. Preferible a no celebrar.
     }
 
-    // Quien pidió menos movimiento en su sistema recibe el saludo sin confeti.
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
-    let animando = true;
-    const fin = Date.now() + 2200;
-    const disparar = () => {
-      if (!animando) return;
-      confetti({
-        particleCount: 4,
-        angle: 60,
-        spread: 70,
-        origin: { x: 0, y: 0.7 },
-        colors: COLORES,
-      });
-      confetti({
-        particleCount: 4,
-        angle: 120,
-        spread: 70,
-        origin: { x: 1, y: 0.7 },
-        colors: COLORES,
-      });
-      if (Date.now() < fin) requestAnimationFrame(disparar);
-    };
-    disparar();
-
-    return () => {
-      animando = false;
-    };
+    return lanzarConfeti();
   }, [nombres, clave]);
 
   if (cerrado || nombres.length === 0) return null;
@@ -79,18 +51,28 @@ export function Confeti({
       role="status"
       className="aparecer pointer-events-none fixed inset-x-0 top-24 z-50 flex justify-center px-4 lg:top-20"
     >
-      <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-borde bg-superficie px-5 py-3 shadow-lg">
-        <span aria-hidden className="text-2xl">
-          🎉
-        </span>
-        <p className="text-sm font-semibold">{saludo}</p>
+      <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-borde bg-superficie py-1 pl-1 pr-2 shadow-lg">
+        <button
+          type="button"
+          onClick={() => lanzarConfeti(1800)}
+          title="Tocá para más confeti"
+          className="flex items-center gap-3 rounded-xl px-4 py-2 hover:bg-acento-suave"
+        >
+          <PartyPopper
+            aria-hidden
+            size={22}
+            strokeWidth={1.75}
+            className="text-acento"
+          />
+          <span className="text-sm font-semibold">{saludo}</span>
+        </button>
         <button
           type="button"
           onClick={() => setCerrado(true)}
           aria-label="Cerrar el saludo"
-          className="ml-2 text-texto-suave hover:text-texto"
+          className="grid h-8 w-8 place-items-center rounded-lg text-texto-suave hover:bg-fondo hover:text-texto"
         >
-          ✕
+          <X aria-hidden size={16} strokeWidth={1.75} />
         </button>
       </div>
     </div>

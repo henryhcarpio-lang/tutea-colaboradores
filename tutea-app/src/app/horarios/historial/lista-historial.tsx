@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Collaborator, DiaSemana } from "@prisma/client";
+import { Search } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
@@ -142,26 +143,68 @@ export function ListaHistorial({
   const [colaboradorId, setColaboradorId] = useState<string>(
     historiales[0]?.colaborador.id ?? "",
   );
+  const [busqueda, setBusqueda] = useState("");
 
-  const elegido = historiales.find((h) => h.colaborador.id === colaboradorId);
+  // Se ignoran mayúsculas y tildes: escribir "ordonez" tiene que encontrar a
+  // "Ordóñez", que es como se escribe pero no como se teclea con apuro.
+  const normalizar = (s: string) =>
+    s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "");
+
+  const termino = normalizar(busqueda.trim());
+  const coinciden = termino
+    ? historiales.filter((h) => normalizar(h.colaborador.nombre).includes(termino))
+    : historiales;
+
+  // Si lo que está elegido no está entre los resultados, se pasa al primero:
+  // así escribir un nombre alcanza para verlo, sin tocar el desplegable.
+  const elegido =
+    coinciden.find((h) => h.colaborador.id === colaboradorId) ?? coinciden[0];
 
   return (
     <div className="space-y-5">
-      <label className="flex flex-wrap items-center gap-2 text-sm text-texto-suave">
-        Colaborador
-        <select
-          value={colaboradorId}
-          onChange={(e) => setColaboradorId(e.target.value)}
-          className={CLASE_SELECT}
-        >
-          {historiales.map((h) => (
-            <option key={h.colaborador.id} value={h.colaborador.id}>
-              {h.colaborador.nombre}
-              {h.cambios.length > 0 ? ` (${h.cambios.length})` : ""}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative">
+          <Search
+            aria-hidden
+            size={16}
+            strokeWidth={1.75}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-texto-suave"
+          />
+          <input
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Buscar por nombre"
+            aria-label="Buscar colaborador por nombre"
+            className="w-56 rounded-xl border border-borde bg-superficie py-2 pl-9 pr-3 text-sm outline-none focus:border-acento focus:ring-2 focus:ring-acento/15"
+          />
+        </div>
+
+        {coinciden.length === 0 ? (
+          <p className="text-sm text-texto-suave">
+            Nadie coincide con “{busqueda.trim()}”.
+          </p>
+        ) : (
+          <label className="flex flex-wrap items-center gap-2 text-sm text-texto-suave">
+            Colaborador
+            <select
+              value={elegido?.colaborador.id ?? ""}
+              onChange={(e) => setColaboradorId(e.target.value)}
+              className={CLASE_SELECT}
+            >
+              {coinciden.map((h) => (
+                <option key={h.colaborador.id} value={h.colaborador.id}>
+                  {h.colaborador.nombre}
+                  {h.cambios.length > 0 ? ` (${h.cambios.length})` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       {elegido && (
         <>

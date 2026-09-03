@@ -6,6 +6,7 @@ const TAMANOS = {
   sm: { caja: "h-8 w-8", texto: "text-[11px]" },
   md: { caja: "h-11 w-11", texto: "text-sm" },
   lg: { caja: "h-20 w-20", texto: "text-xl" },
+  xl: { caja: "h-32 w-32", texto: "text-4xl" },
 } as const;
 
 export type TamanoAvatar = keyof typeof TAMANOS;

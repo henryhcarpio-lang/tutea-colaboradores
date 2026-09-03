@@ -3,16 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const MODULOS = [
-  { href: "/", etiqueta: "Inicio" },
-  { href: "/horarios", etiqueta: "Horarios" },
-  { href: "/vidas", etiqueta: "Vidas" },
-  { href: "/cumpleanos", etiqueta: "Cumpleaños" },
-] as const;
+import { LogIn, LogOut } from "lucide-react";
+import { MODULOS } from "@/lib/modulos";
 
 function claseEnlace(activo: boolean) {
-  return `shrink-0 rounded-lg px-3 py-1.5 text-sm ${
+  return `flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm ${
     activo
       ? "bg-acento-suave font-medium text-acento"
       : "text-texto-suave hover:bg-fondo hover:text-texto"
@@ -24,11 +19,13 @@ export function Navegacion({ admin }: { admin: boolean }) {
   const esActivo = (href: string) =>
     href === "/" ? ruta === "/" : ruta.startsWith(href);
 
+  const visibles = MODULOS.filter((m) => !m.soloAdmin || admin);
+
   return (
     <header className="border-b border-borde/70 bg-superficie/80 backdrop-blur">
       <div className="mx-auto w-full max-w-6xl px-6 py-3">
-        {/* Fila 1: identidad y sesión. En móvil el menú baja a su propia fila
-            para que nada se corte ni empuje la página a lo ancho. */}
+        {/* Fila 1: identidad y sesión. En pantallas chicas el menú baja a su
+            propia fila para que nada se corte ni empuje la página a lo ancho. */}
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
             <Image
@@ -45,14 +42,15 @@ export function Navegacion({ admin }: { admin: boolean }) {
           </Link>
 
           <nav className="hidden items-center gap-1 lg:flex">
-            {MODULOS.map((modulo) => (
+            {visibles.map(({ href, etiqueta, Icono }) => (
               <Link
-                key={modulo.href}
-                href={modulo.href}
-                aria-current={esActivo(modulo.href) ? "page" : undefined}
-                className={claseEnlace(esActivo(modulo.href))}
+                key={href}
+                href={href}
+                aria-current={esActivo(href) ? "page" : undefined}
+                className={claseEnlace(esActivo(href))}
               >
-                {modulo.etiqueta}
+                <Icono aria-hidden size={16} strokeWidth={1.75} />
+                {etiqueta}
               </Link>
             ))}
           </nav>
@@ -60,20 +58,15 @@ export function Navegacion({ admin }: { admin: boolean }) {
           <div className="flex shrink-0 items-center gap-3">
             {admin ? (
               <>
-                <Link
-                  href="/colaboradores"
-                  className={`hidden lg:block ${claseEnlace(esActivo("/colaboradores"))}`}
-                >
-                  Colaboradores
-                </Link>
                 <span className="rounded-full bg-acento-suave px-2.5 py-1 text-xs font-medium text-acento">
                   Admin
                 </span>
                 <form action="/api/sesion/salir" method="post">
                   <button
                     type="submit"
-                    className="text-sm text-texto-suave hover:text-texto"
+                    className="flex items-center gap-1.5 text-sm text-texto-suave hover:text-texto"
                   >
+                    <LogOut aria-hidden size={16} strokeWidth={1.75} />
                     Salir
                   </button>
                 </form>
@@ -83,34 +76,28 @@ export function Navegacion({ admin }: { admin: boolean }) {
               // vista pública, no el login (§2 del spec).
               <Link
                 href="/ingresar"
-                className="text-sm text-texto-suave hover:text-texto"
+                className="flex items-center gap-1.5 text-sm text-texto-suave hover:text-texto"
               >
+                <LogIn aria-hidden size={16} strokeWidth={1.75} />
                 Ingresar
               </Link>
             )}
           </div>
         </div>
 
-        {/* Fila 2, solo en móvil. Scroll horizontal propio si no entra. */}
+        {/* Fila 2, solo en pantallas chicas. Scroll horizontal propio si no entra. */}
         <nav className="-mx-1 mt-2 flex items-center gap-1 overflow-x-auto pb-0.5 lg:hidden">
-          {MODULOS.map((modulo) => (
+          {visibles.map(({ href, etiqueta, Icono }) => (
             <Link
-              key={modulo.href}
-              href={modulo.href}
-              aria-current={esActivo(modulo.href) ? "page" : undefined}
-              className={claseEnlace(esActivo(modulo.href))}
+              key={href}
+              href={href}
+              aria-current={esActivo(href) ? "page" : undefined}
+              className={claseEnlace(esActivo(href))}
             >
-              {modulo.etiqueta}
+              <Icono aria-hidden size={16} strokeWidth={1.75} />
+              {etiqueta}
             </Link>
           ))}
-          {admin && (
-            <Link
-              href="/colaboradores"
-              className={claseEnlace(esActivo("/colaboradores"))}
-            >
-              Colaboradores
-            </Link>
-          )}
         </nav>
       </div>
     </header>

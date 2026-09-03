@@ -32,15 +32,28 @@ export function aMinutos(hhmm: string): number | null {
   return horas * 60 + minutos;
 }
 
+/** Formato de 24 h, para los <input type="time"> del editor. */
 export function aHHMM(minutos: number): string {
   const h = Math.floor(minutos / 60);
   const m = minutos % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-/** "8:00 a 13:00" para mostrar en la cuadrícula. */
+/**
+ * Formato de reloj de 12 horas, sin a.m./p.m. — así se leen los horarios en
+ * Tutea: las 14:00 son "2:00" y las 19:30, "7:30". La franja del día se
+ * entiende por la posición en la grilla, no hace falta el sufijo.
+ */
+export function aHoraLocal(minutos: number): string {
+  const h24 = Math.floor(minutos / 60);
+  const m = minutos % 60;
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${String(m).padStart(2, "0")}`;
+}
+
+/** "9:00 a 1:00" para mostrar en la cuadrícula. */
 export function rangoLegible(inicio: number, fin: number): string {
-  return `${aHHMM(inicio)} a ${aHHMM(fin)}`;
+  return `${aHoraLocal(inicio)} a ${aHoraLocal(fin)}`;
 }
 
 export function duracionLegible(minutos: number): string {

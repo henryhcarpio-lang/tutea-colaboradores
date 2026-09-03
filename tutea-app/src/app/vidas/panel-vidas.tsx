@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import type { Collaborator } from "@prisma/client";
+import { HeartMinus, Minus, Plus, RotateCcw } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
@@ -193,9 +194,9 @@ function Tarjeta({
                     void ajustarCupo(fila.periodoId, -1);
                   })
                 }
-                className="h-7 w-7 rounded-lg text-sm font-semibold text-texto-suave hover:bg-fondo disabled:opacity-40"
+                className="grid h-7 w-7 place-items-center rounded-lg text-texto-suave hover:bg-fondo disabled:opacity-40"
               >
-                −
+                <Minus aria-hidden size={15} strokeWidth={2} />
               </button>
               <span className="w-4 text-center text-xs tabular-nums text-texto-suave">
                 {fila.vidasAsignadas}
@@ -209,9 +210,9 @@ function Tarjeta({
                     void ajustarCupo(fila.periodoId, 1);
                   })
                 }
-                className="h-7 w-7 rounded-lg text-sm font-semibold text-texto-suave hover:bg-fondo disabled:opacity-40"
+                className="grid h-7 w-7 place-items-center rounded-lg text-texto-suave hover:bg-fondo disabled:opacity-40"
               >
-                +
+                <Plus aria-hidden size={15} strokeWidth={2} />
               </button>
             </div>
 
@@ -219,8 +220,9 @@ function Tarjeta({
               type="button"
               onClick={() => setRegistrando(true)}
               disabled={registrando}
-              className="rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo disabled:opacity-60"
+              className="flex items-center gap-1.5 rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo disabled:opacity-60"
             >
+              <HeartMinus aria-hidden size={15} strokeWidth={1.75} />
               Usar vida
             </button>
           </div>
@@ -330,8 +332,9 @@ export function PanelVidas({
             <button
               type="button"
               onClick={() => setConfirmando(true)}
-              className="rounded-xl border border-borde px-3 py-2 text-sm hover:bg-superficie"
+              className="flex items-center gap-1.5 rounded-xl border border-borde px-3 py-2 text-sm hover:bg-superficie"
             >
+              <RotateCcw aria-hidden size={16} strokeWidth={1.75} />
               Reiniciar el mes
             </button>
           )}

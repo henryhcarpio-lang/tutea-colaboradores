@@ -1,37 +1,8 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { esAdmin } from "@/lib/auth";
 import { mesPeriodoActual, etiquetaMesPeriodo } from "@/lib/fecha";
-
-const MODULOS = [
-  {
-    soloAdmin: false,
-    href: "/horarios",
-    titulo: "Horarios",
-    detalle:
-      "El horario semanal de cada colaborador, de lunes a sábado, con sus bloques y cortes de almuerzo.",
-  },
-  {
-    soloAdmin: false,
-    href: "/vidas",
-    titulo: "Vidas",
-    detalle:
-      "Los permisos disponibles del mes, en corazones. Se reinician solos al empezar cada mes.",
-  },
-  {
-    soloAdmin: false,
-    href: "/cumpleanos",
-    titulo: "Cumpleaños",
-    detalle:
-      "Quién cumple años este mes, y un aviso destacado cuando el día se acerca.",
-  },
-  {
-    href: "/colaboradores",
-    titulo: "Colaboradores",
-    detalle:
-      "Alta, edición y baja del equipo. Todo lo demás depende de esta sección.",
-    soloAdmin: true,
-  },
-] as const;
+import { MODULOS_PORTADA } from "@/lib/modulos";
 
 export default async function Inicio() {
   const admin = await esAdmin();
@@ -42,31 +13,40 @@ export default async function Inicio() {
         {etiquetaMesPeriodo(mesPeriodoActual())}
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-        Colaboradores de Tutea
+        Bienvenido, colaborador
       </h1>
       <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-texto-suave">
-        Todo el equipo puede consultar esta página sin necesidad de clave ni de
-        crear una cuenta.{" "}
         {admin
           ? "Estás con la sesión de administrador: podés crear, editar y eliminar."
-          : "Es de solo lectura: para editar hace falta la clave de gerencia."}
+          : "Acá tenés a mano tu horario, tus vidas del mes y los cumpleaños que se vienen. Entrás y consultás: no hace falta clave ni crear una cuenta."}
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {MODULOS.filter((m) => !m.soloAdmin || admin).map((modulo) => (
-          <Link
-            key={modulo.href}
-            href={modulo.href}
-            className="group rounded-2xl border border-borde bg-superficie p-6 hover:border-acento/40 hover:shadow-sm"
-          >
-            <h2 className="text-[15px] font-semibold group-hover:text-acento">
-              {modulo.titulo}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-texto-suave">
-              {modulo.detalle}
-            </p>
-          </Link>
-        ))}
+        {MODULOS_PORTADA.filter((m) => !m.soloAdmin || admin).map(
+          ({ href, etiqueta, detalle, Icono }) => (
+            <Link
+              key={href}
+              href={href}
+              className="group rounded-2xl border border-borde bg-superficie p-6 hover:border-acento/40 hover:shadow-sm"
+            >
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-acento-suave text-acento">
+                <Icono aria-hidden size={20} strokeWidth={1.75} />
+              </span>
+              <h2 className="mt-4 flex items-center gap-1.5 text-[15px] font-semibold group-hover:text-acento">
+                {etiqueta}
+                <ArrowRight
+                  aria-hidden
+                  size={15}
+                  strokeWidth={1.75}
+                  className="opacity-0 transition-transform group-hover:translate-x-0.5 group-hover:opacity-100"
+                />
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-texto-suave">
+                {detalle}
+              </p>
+            </Link>
+          ),
+        )}
       </div>
     </div>
   );

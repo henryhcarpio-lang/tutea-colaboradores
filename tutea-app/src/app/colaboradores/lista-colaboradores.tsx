@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Check, Pencil, RotateCcw, Trash2, UserPlus, X } from "lucide-react";
 import type { Collaborator } from "@prisma/client";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
@@ -72,8 +73,9 @@ function Fila({ colaborador }: { colaborador: Collaborator }) {
             <button
               type="button"
               onClick={() => setEditando(true)}
-              className="rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo"
+              className="flex items-center gap-1.5 rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo"
             >
+              <Pencil aria-hidden size={15} strokeWidth={1.75} />
               Editar
             </button>
             {confirmando ? (
@@ -86,15 +88,17 @@ function Fila({ colaborador }: { colaborador: Collaborator }) {
                       void desactivarColaborador(colaborador.id);
                     })
                   }
-                  className="rounded-lg bg-peligro px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-lg bg-peligro px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
                 >
+                  <Check aria-hidden size={15} strokeWidth={2} />
                   {pendiente ? "Quitando…" : "Confirmar"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setConfirmando(false)}
-                  className="text-sm text-texto-suave hover:text-texto"
+                  className="flex items-center gap-1 text-sm text-texto-suave hover:text-texto"
                 >
+                  <X aria-hidden size={15} strokeWidth={1.75} />
                   No
                 </button>
               </>
@@ -102,8 +106,9 @@ function Fila({ colaborador }: { colaborador: Collaborator }) {
               <button
                 type="button"
                 onClick={() => setConfirmando(true)}
-                className="rounded-lg px-3 py-1.5 text-sm text-texto-suave hover:bg-peligro-suave hover:text-peligro"
+                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-texto-suave hover:bg-peligro-suave hover:text-peligro"
               >
+                <Trash2 aria-hidden size={15} strokeWidth={1.75} />
                 Quitar
               </button>
             )}
@@ -117,8 +122,9 @@ function Fila({ colaborador }: { colaborador: Collaborator }) {
                 void reactivarColaborador(colaborador.id);
               })
             }
-            className="rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo disabled:opacity-60"
+            className="flex items-center gap-1.5 rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo disabled:opacity-60"
           >
+            <RotateCcw aria-hidden size={15} strokeWidth={1.75} />
             {pendiente ? "Reactivando…" : "Reactivar"}
           </button>
         )}
@@ -144,8 +150,9 @@ export function ListaColaboradores({
           type="button"
           onClick={() => setCreando(true)}
           disabled={creando}
-          className="rounded-xl bg-acento px-4 py-2.5 text-sm font-semibold text-white hover:bg-acento-fuerte disabled:opacity-60"
+          className="flex items-center gap-2 rounded-xl bg-acento px-4 py-2.5 text-sm font-semibold text-white hover:bg-acento-fuerte disabled:opacity-60"
         >
+          <UserPlus aria-hidden size={17} strokeWidth={1.75} />
           Nuevo colaborador
         </button>
 

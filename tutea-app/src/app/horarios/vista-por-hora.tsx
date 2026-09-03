@@ -1,8 +1,9 @@
 "use client";
 
 import { AREAS } from "@/lib/areas";
+import { Avatar } from "@/components/avatar";
 import { EstadoVacio } from "@/components/seccion";
-import { DIAS, aHHMM, rangoLegible } from "@/lib/horarios";
+import { DIAS, aHoraLocal, rangoLegible } from "@/lib/horarios";
 import type { FilaHorario } from "./cuadricula";
 
 /**
@@ -104,7 +105,7 @@ function ColumnaDia({
     <div
       className="grid gap-x-1 border-l border-borde px-1"
       style={{
-        gridTemplateColumns: `repeat(${presentes.length}, minmax(26px, 1fr))`,
+        gridTemplateColumns: `repeat(${presentes.length}, minmax(34px, 1fr))`,
         gridTemplateRows: `repeat(${ranuras}, ${ALTO_RANURA}px)`,
       }}
     >
@@ -127,18 +128,30 @@ function ColumnaDia({
               b.horaFinMin,
             )}`;
 
+            // La foto va arriba y el nombre en vertical debajo. Con varias
+            // personas de la misma área el color ya no alcanza para
+            // distinguirlas, y la cara se reconoce más rápido que un nombre
+            // rotado.
             const contenido = (
-              <span
-                className="truncate text-[11px] font-semibold"
-                // El nombre va en vertical porque la barra es angosta y alta;
-                // rotado para leerse de abajo hacia arriba.
-                style={{ writingMode: "vertical-rl", rotate: "180deg" }}
-              >
-                {f.colaborador.nombre.split(/\s+/)[0]}
+              <span className="flex h-full w-full flex-col items-center gap-1 py-1">
+                <Avatar
+                  nombre={f.colaborador.nombre}
+                  foto={f.colaborador.foto}
+                  area={f.colaborador.area}
+                  tamano="xs"
+                />
+                <span
+                  className="min-h-0 flex-1 truncate text-[11px] font-semibold"
+                  // El nombre va en vertical porque la barra es angosta y alta;
+                  // rotado para leerse de abajo hacia arriba.
+                  style={{ writingMode: "vertical-rl", rotate: "180deg" }}
+                >
+                  {f.colaborador.nombre.split(/\s+/)[0]}
+                </span>
               </span>
             );
 
-            const clases = `flex items-center justify-center overflow-hidden rounded-md ${colores.fondo} ${colores.texto}`;
+            const clases = `flex items-start justify-center overflow-hidden rounded-md ${colores.fondo} ${colores.texto}`;
 
             return admin ? (
               <button
@@ -189,7 +202,7 @@ function GrillaTramo({
   const etiquetas = Math.ceil(ranuras / RANURAS_ENTRE_ETIQUETAS);
 
   return (
-    <div className="grid grid-cols-[72px_repeat(6,minmax(120px,1fr))]">
+    <div className="grid grid-cols-[64px_repeat(6,minmax(140px,1fr))]">
       {/* Columna de horas */}
       <div
         className="grid"
@@ -205,7 +218,7 @@ function GrillaTramo({
               }}
               className="border-t border-borde/60 px-3 pt-0.5 text-[11px] font-medium tabular-nums text-texto-suave"
             >
-              {aHHMM(minuto)}
+              {aHoraLocal(minuto)}
             </div>
           );
         })}
@@ -251,9 +264,9 @@ export function VistaPorHora({
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-2xl border border-borde bg-superficie">
-        <div className="min-w-[840px]">
+        <div className="min-w-[960px]">
           {/* Encabezado de días */}
-          <div className="grid grid-cols-[72px_repeat(6,minmax(120px,1fr))] border-b border-borde bg-fondo/60">
+          <div className="grid grid-cols-[64px_repeat(6,minmax(140px,1fr))] border-b border-borde bg-fondo/60">
             <div className="p-3 text-xs font-semibold text-texto-suave">
               Hora
             </div>
