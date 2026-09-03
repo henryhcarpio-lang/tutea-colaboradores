@@ -42,7 +42,7 @@ export function FormularioColaborador({
     String(colaborador?.vidasMensualesDefault ?? 2),
   );
   const [nacimiento, setNacimiento] = useState(
-    colaborador ? aISO(colaborador.fechaNacimiento) : "",
+    colaborador?.fechaNacimiento ? aISO(colaborador.fechaNacimiento) : "",
   );
   const [quitarFoto, setQuitarFoto] = useState(false);
   // Solo al crear: el alta permite dejar la semana cargada de una vez, sin
@@ -181,7 +181,8 @@ export function FormularioColaborador({
 
           <div className="sm:col-span-2">
             <label htmlFor="nacimiento" className="text-sm font-medium">
-              Fecha de nacimiento
+              Fecha de nacimiento{" "}
+              <span className="font-normal text-texto-suave">(opcional)</span>
             </label>
             <input
               id="nacimiento"
@@ -192,7 +193,8 @@ export function FormularioColaborador({
               className={CLASE_CAMPO}
             />
             <p className="mt-1.5 text-xs text-texto-suave">
-              Día, mes y año. El día se usa para avisar del cumpleaños.
+              Día, mes y año. El día se usa para avisar del cumpleaños. Si
+              todavía no la sabés, se puede dejar vacía y completarla después.
             </p>
           </div>
         </div>

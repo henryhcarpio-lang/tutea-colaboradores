@@ -11,6 +11,21 @@ export function prefiereMenosMovimiento(): boolean {
 }
 
 /**
+ * Tiempo mínimo entre dos lanzamientos. Sin esto, alguien que toca el saludo
+ * muchas veces seguidas apila animaciones y el navegador se pone lento: cada
+ * lanzamiento son cientos de partículas dibujándose por cuadro.
+ */
+const ESPERA_ENTRE_LANZAMIENTOS_MS = 1500;
+
+let ultimoLanzamiento = 0;
+let cortarAnterior: (() => void) | null = null;
+
+/** Cuánto falta para poder volver a lanzar. 0 = ya se puede. */
+export function esperaRestanteMs(): number {
+  return Math.max(0, ESPERA_ENTRE_LANZAMIENTOS_MS - (Date.now() - ultimoLanzamiento));
+}
+
+/**
  * Lluvia de confeti desde los dos costados. Se usa al entrar el día del
  * cumpleaños y cada vez que alguien toca el saludo.
  *
@@ -18,6 +33,13 @@ export function prefiereMenosMovimiento(): boolean {
  */
 export function lanzarConfeti(duracionMs = 2600): () => void {
   if (prefiereMenosMovimiento()) return () => {};
+
+  // Se ignoran los toques repetidos dentro de la ventana de espera.
+  if (esperaRestanteMs() > 0) return () => {};
+  ultimoLanzamiento = Date.now();
+
+  // Si quedaba una lluvia en curso, se corta: una sola a la vez.
+  cortarAnterior?.();
 
   // Golpe inicial, para que la celebración arranque llena y no de a goteo.
   confetti({
@@ -53,7 +75,9 @@ export function lanzarConfeti(duracionMs = 2600): () => void {
   };
   disparar();
 
-  return () => {
+  const cortar = () => {
     vivo = false;
   };
+  cortarAnterior = cortar;
+  return cortar;
 }

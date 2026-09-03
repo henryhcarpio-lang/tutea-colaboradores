@@ -4,6 +4,7 @@ import { AREAS } from "@/lib/areas";
 import { Avatar } from "@/components/avatar";
 import { EstadoVacio } from "@/components/seccion";
 import { DIAS, aHoraLocal, rangoLegible } from "@/lib/horarios";
+import type { DiaSemana } from "@prisma/client";
 import type { FilaHorario } from "./cuadricula";
 
 /**
@@ -16,6 +17,10 @@ import type { FilaHorario } from "./cuadricula";
 // Granularidad de 5 minutos: permite que una entrada a las 8:50 caiga en su
 // lugar exacto, sin redondear.
 const MINUTOS_POR_RANURA = 5;
+/** Ancho mínimo de la barra de una persona, con su foto adentro. */
+const ANCHO_POR_PERSONA = 40;
+const ANCHO_MINIMO_DIA = 120;
+const ANCHO_COLUMNA_HORA = 64;
 const ALTO_RANURA = 5; // px
 const MINUTOS_ENTRE_ETIQUETAS = 30;
 const RANURAS_ENTRE_ETIQUETAS = MINUTOS_ENTRE_ETIQUETAS / MINUTOS_POR_RANURA;
@@ -60,6 +65,33 @@ function calcularTramos(filas: FilaHorario[]): Tramo[] {
     }
   }
   return unidos;
+}
+
+/**
+ * Personas que trabajan en un día. El ancho de la columna sale de acá: con el
+ * equipo completo hay mañanas de nueve personas a la vez, y si el día no se
+ * ensancha las barras se encogen hasta que los nombres se pisan.
+ */
+function presentesEnDia(filas: FilaHorario[], dia: DiaSemana): number {
+  return filas.filter((f) => f.bloques.some((b) => b.diaSemana === dia)).length;
+}
+
+function columnasDeLaGrilla(filas: FilaHorario[]): string {
+  const anchos = DIAS.map((d) =>
+    Math.max(ANCHO_MINIMO_DIA, presentesEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
+  );
+  return `${ANCHO_COLUMNA_HORA}px ${anchos.map((a) => `minmax(${a}px, 1fr)`).join(" ")}`;
+}
+
+function anchoTotal(filas: FilaHorario[]): number {
+  return (
+    ANCHO_COLUMNA_HORA +
+    DIAS.reduce(
+      (t, d) =>
+        t + Math.max(ANCHO_MINIMO_DIA, presentesEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
+      0,
+    )
+  );
 }
 
 /** Redondea el inicio del tramo hacia abajo a la etiqueta anterior. */
@@ -189,11 +221,13 @@ function ColumnaDia({
 function GrillaTramo({
   filas,
   tramo,
+  columnas,
   admin,
   onEditar,
 }: {
   filas: FilaHorario[];
   tramo: Tramo;
+  columnas: string;
   admin: boolean;
   onEditar: (colaboradorId: string) => void;
 }) {
@@ -202,7 +236,7 @@ function GrillaTramo({
   const etiquetas = Math.ceil(ranuras / RANURAS_ENTRE_ETIQUETAS);
 
   return (
-    <div className="grid grid-cols-[64px_repeat(6,minmax(140px,1fr))]">
+    <div className="grid" style={{ gridTemplateColumns: columnas }}>
       {/* Columna de horas */}
       <div
         className="grid"
@@ -248,6 +282,7 @@ export function VistaPorHora({
   onEditar: (colaboradorId: string) => void;
 }) {
   const tramos = calcularTramos(filas);
+  const columnas = columnasDeLaGrilla(filas);
   // Quien no trabaja ninguna hora no aparece en ninguna barra: sin este pie,
   // el admin no tendría desde dónde asignarle su primer horario.
   const sinHorario = filas.filter((f) => f.bloques.length === 0);
@@ -264,9 +299,12 @@ export function VistaPorHora({
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-2xl border border-borde bg-superficie">
-        <div className="min-w-[960px]">
+        <div style={{ minWidth: anchoTotal(filas) }}>
           {/* Encabezado de días */}
-          <div className="grid grid-cols-[64px_repeat(6,minmax(140px,1fr))] border-b border-borde bg-fondo/60">
+          <div
+            className="grid border-b border-borde bg-fondo/60"
+            style={{ gridTemplateColumns: columnas }}
+          >
             <div className="p-3 text-xs font-semibold text-texto-suave">
               Hora
             </div>
@@ -297,6 +335,7 @@ export function VistaPorHora({
               <GrillaTramo
                 filas={filas}
                 tramo={tramo}
+                columnas={columnas}
                 admin={admin}
                 onEditar={onEditar}
               />

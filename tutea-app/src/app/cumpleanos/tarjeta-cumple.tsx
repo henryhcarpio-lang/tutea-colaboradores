@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Area } from "@prisma/client";
 import { Avatar } from "@/components/avatar";
-import { lanzarConfeti, prefiereMenosMovimiento } from "@/lib/celebracion";
+import {
+  esperaRestanteMs,
+  lanzarConfeti,
+  prefiereMenosMovimiento,
+} from "@/lib/celebracion";
 
 /**
  * Los saludos varían para que el mensaje no se vuelva un cartel fijo que nadie
@@ -71,12 +75,27 @@ export function TarjetaCumple({
   /** Fecha de hoy: mantiene estable el saludo durante todo el día. */
   semilla: string;
 }) {
+  const [enEspera, setEnEspera] = useState(false);
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     // La sección de Cumpleaños celebra al entrar, aunque el saludo de la barra
     // ya se haya mostrado en otra página.
     if (prefiereMenosMovimiento()) return;
     return lanzarConfeti(2000);
   }, [semilla, nombre]);
+
+  useEffect(() => () => {
+    if (temporizador.current) clearTimeout(temporizador.current);
+  }, []);
+
+  function celebrar() {
+    lanzarConfeti(1800);
+    const espera = esperaRestanteMs();
+    if (espera === 0) return;
+    setEnEspera(true);
+    temporizador.current = setTimeout(() => setEnEspera(false), espera);
+  }
 
   return (
     <section className="aparecer relative mb-8 overflow-hidden rounded-3xl border border-acento/25 bg-gradient-to-b from-acento-suave to-superficie px-6 py-10 text-center sm:px-20">
@@ -85,9 +104,10 @@ export function TarjetaCumple({
 
       <button
         type="button"
-        onClick={() => lanzarConfeti(1800)}
-        title="Tocá para más confeti"
-        className="relative mx-auto block rounded-full transition-transform hover:scale-105"
+        onClick={celebrar}
+        disabled={enEspera}
+        title={enEspera ? "Esperá un momento" : "Tocá para más confeti"}
+        className="relative mx-auto block rounded-full transition-transform hover:scale-105 disabled:hover:scale-100"
       >
         <span className="block rounded-full ring-4 ring-superficie">
           <Avatar nombre={nombre} foto={foto} area={area} tamano="xl" />

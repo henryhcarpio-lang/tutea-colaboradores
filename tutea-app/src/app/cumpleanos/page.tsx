@@ -23,10 +23,16 @@ export default async function Cumpleanos() {
 
   const mesActual = partesEnLima().mes;
 
-  const conCumple = colaboradores.map((c) => ({
-    ...c,
-    cumple: calcularCumple(c.fechaNacimiento),
-  }));
+  // Sin fecha cargada no hay cumpleaños que anunciar: esa persona no aparece
+  // en el módulo hasta que gerencia complete el dato.
+  const conCumple = colaboradores
+    .filter((c) => c.fechaNacimiento !== null)
+    .map((c) => ({
+      ...c,
+      cumple: calcularCumple(c.fechaNacimiento!),
+    }));
+
+  const sinFecha = colaboradores.filter((c) => c.fechaNacimiento === null);
 
   // La lista es la del mes corriente, ordenada por día.
   const delMes = conCumple
@@ -154,6 +160,14 @@ export default async function Cumpleanos() {
             </li>
           ))}
         </ul>
+      )}
+      {sinFecha.length > 0 && (
+        <p className="mt-6 text-sm text-texto-suave">
+          {sinFecha.length === 1
+            ? "1 persona no tiene cargada su fecha de nacimiento"
+            : `${sinFecha.length} personas no tienen cargada su fecha de nacimiento`}
+          : {sinFecha.map((c) => c.nombre).join(", ")}.
+        </p>
       )}
     </>
   );

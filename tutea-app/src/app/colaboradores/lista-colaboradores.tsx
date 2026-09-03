@@ -61,7 +61,10 @@ function Fila({ colaborador }: { colaborador: Collaborator }) {
           )}
         </div>
         <p className="mt-0.5 text-sm text-texto-suave">
-          Nace el {fechaLegible(colaborador.fechaNacimiento)} ·{" "}
+          {colaborador.fechaNacimiento
+            ? `Nace el ${fechaLegible(colaborador.fechaNacimiento)}`
+            : "Sin fecha de nacimiento"}{" "}
+          ·{" "}
           {colaborador.vidasMensualesDefault}{" "}
           {colaborador.vidasMensualesDefault === 1 ? "vida" : "vidas"} por mes
         </p>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PartyPopper, X } from "lucide-react";
-import { lanzarConfeti } from "@/lib/celebracion";
+import { esperaRestanteMs, lanzarConfeti } from "@/lib/celebracion";
 
 /**
  * Celebración al entrar a la plataforma el día del cumpleaños (Entregable 6).
@@ -21,6 +21,20 @@ export function Confeti({
   clave: string;
 }) {
   const [cerrado, setCerrado] = useState(false);
+  const [enEspera, setEnEspera] = useState(false);
+  const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (temporizador.current) clearTimeout(temporizador.current);
+  }, []);
+
+  function celebrar() {
+    lanzarConfeti(1800);
+    const espera = esperaRestanteMs();
+    if (espera === 0) return;
+    setEnEspera(true);
+    temporizador.current = setTimeout(() => setEnEspera(false), espera);
+  }
 
   useEffect(() => {
     if (nombres.length === 0) return;
@@ -54,9 +68,10 @@ export function Confeti({
       <div className="pointer-events-auto flex items-center gap-1 rounded-2xl border border-borde bg-superficie py-1 pl-1 pr-2 shadow-lg">
         <button
           type="button"
-          onClick={() => lanzarConfeti(1800)}
-          title="Tocá para más confeti"
-          className="flex items-center gap-3 rounded-xl px-4 py-2 hover:bg-acento-suave"
+          onClick={celebrar}
+          disabled={enEspera}
+          title={enEspera ? "Esperá un momento" : "Tocá para más confeti"}
+          className="flex items-center gap-3 rounded-xl px-4 py-2 hover:bg-acento-suave disabled:cursor-default disabled:hover:bg-transparent"
         >
           <PartyPopper
             aria-hidden

@@ -35,7 +35,8 @@ async function cumpleanerosDeHoy(): Promise<string[]> {
     select: { nombre: true, fechaNacimiento: true },
   });
   return colaboradores
-    .filter((c) => calcularCumple(c.fechaNacimiento).esHoy)
+    .filter((c) => c.fechaNacimiento !== null)
+    .filter((c) => calcularCumple(c.fechaNacimiento!).esHoy)
     .map((c) => c.nombre.split(/\s+/)[0]);
 }
 

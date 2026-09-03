@@ -36,7 +36,10 @@ model Collaborator {
   foto                   String?  @db.Text
   /// Fecha completa: día, mes y año. El día es necesario para el módulo de
   /// cumpleaños; el año permite calcular la edad.
-  fechaNacimiento        DateTime @map("fecha_nacimiento") @db.Date
+  ///
+  /// Opcional: la planilla real del equipo no la tiene para todos, y una fecha
+  /// inventada dispararía un cumpleaños falso.
+  fechaNacimiento        DateTime? @map("fecha_nacimiento") @db.Date
   /// Cupo por defecto con el que se abre cada mes. El cupo realmente vigente
   /// vive en LifeMonthlyPeriod.
   vidasMensualesDefault  Int      @default(2) @map("vidas_mensuales_default")

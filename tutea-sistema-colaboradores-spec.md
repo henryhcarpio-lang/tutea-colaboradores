@@ -30,7 +30,7 @@ Tutea es una empresa peruana de asesoría e investigación científica (servicio
 | nombre | string | |
 | area | enum: `operativo`, `comercial`, `administrativo` | usada como etiqueta/filtro |
 | foto | text | data URL base64 de la imagen, ya redimensionada (ver §3.7) |
-| fecha_nacimiento | date | Fecha completa y obligatoria: **día, mes y año** (ej. 1995-03-14). El año permite calcular y mostrar la edad; el día es imprescindible para el Entregable 6 (saber quién cumple hoy y quién dentro de 7 días). |
+| fecha_nacimiento | date nullable | Fecha completa: **día, mes y año** (ej. 1995-03-14). El año permite calcular y mostrar la edad; el día es imprescindible para el Entregable 6. **Es opcional**: la planilla real del equipo no la tiene para 8 de 19 personas, y una fecha inventada dispararía un cumpleaños falso. Quien no la tenga simplemente no participa del módulo de Cumpleaños, y la sección lista a quiénes les falta para que gerencia complete el dato. |
 | vidas_mensuales_default | integer | cupo **por defecto** del colaborador (ej. Ronald=4, Henry=2, Evelyn=1). Es la plantilla con la que se abre cada mes; el cupo realmente vigente vive en `LifeMonthlyPeriod` (§3.6) |
 | activo | boolean | para poder "eliminar" sin perder historial (soft delete recomendado) |
 | creado_en | datetime | |

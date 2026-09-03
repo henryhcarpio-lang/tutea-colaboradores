@@ -16,7 +16,7 @@ const FORMATOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
 type DatosValidados = {
   nombre: string;
   area: Area;
-  fechaNacimiento: Date;
+  fechaNacimiento: Date | null;
   vidasMensualesDefault: number;
   foto: string | null;
 };
@@ -33,19 +33,25 @@ function validar(datos: FormData): DatosValidados | string {
   const area = String(datos.get("area") ?? "");
   if (!LISTA_AREAS.includes(area as Area)) return "Elegí un área válida.";
 
-  const fechaTexto = String(datos.get("fechaNacimiento") ?? "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) {
-    return "Ingresá la fecha de nacimiento (día, mes y año).";
-  }
-  // Se arma en UTC a medianoche para que la columna `date` guarde exactamente
-  // el día escrito, sin correrse por zona horaria.
-  const fechaNacimiento = new Date(`${fechaTexto}T00:00:00.000Z`);
-  if (Number.isNaN(fechaNacimiento.getTime())) return "La fecha no es válida.";
-  if (fechaNacimiento > hoyEnLima()) {
-    return "La fecha de nacimiento no puede estar en el futuro.";
-  }
-  if (fechaNacimiento.getUTCFullYear() < 1940) {
-    return "Revisá el año de nacimiento.";
+  // La fecha es opcional: la planilla real del equipo no la tiene para todos,
+  // y una fecha inventada dispararía un cumpleaños falso.
+  const fechaTexto = String(datos.get("fechaNacimiento") ?? "").trim();
+  let fechaNacimiento: Date | null = null;
+
+  if (fechaTexto) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) {
+      return "La fecha de nacimiento no es válida.";
+    }
+    // Se arma en UTC a medianoche para que la columna `date` guarde exactamente
+    // el día escrito, sin correrse por zona horaria.
+    fechaNacimiento = new Date(`${fechaTexto}T00:00:00.000Z`);
+    if (Number.isNaN(fechaNacimiento.getTime())) return "La fecha no es válida.";
+    if (fechaNacimiento > hoyEnLima()) {
+      return "La fecha de nacimiento no puede estar en el futuro.";
+    }
+    if (fechaNacimiento.getUTCFullYear() < 1940) {
+      return "Revisá el año de nacimiento.";
+    }
   }
 
   const vidas = Number(datos.get("vidasMensualesDefault"));
