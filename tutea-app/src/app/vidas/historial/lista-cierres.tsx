@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import type { Collaborator } from "@prisma/client";
+import type { Collaborator, TipoVida } from "@prisma/client";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
 import { Corazones } from "../corazones";
+import { TIPOS_VIDA } from "@/lib/tipo-vida";
 
-type Uso = { id: string; fecha: string; motivo: string | null };
+type Uso = { id: string; fecha: string; tipo: TipoVida; motivo: string | null };
 
 type Cierre = {
   id: string;
@@ -51,7 +52,7 @@ function TarjetaCierre({ cierre }: { cierre: Cierre }) {
       <div className="mt-3">
         <Corazones
           asignadas={cierre.vidasAsignadas}
-          usadas={usadas}
+          usos={cierre.usos.map((u) => ({ tipo: u.tipo }))}
           indiceAnimado={null}
         />
       </div>
@@ -69,10 +70,18 @@ function TarjetaCierre({ cierre }: { cierre: Cierre }) {
       {usadas > 0 && (
         <ul className="mt-3 space-y-1 border-t border-borde pt-3">
           {cierre.usos.map((uso) => (
-            <li key={uso.id} className="flex gap-2 text-xs text-texto-suave">
+            <li key={uso.id} className="flex flex-wrap items-center gap-2 text-xs text-texto-suave">
               <span className="w-32 shrink-0 font-medium text-texto">
                 {fecha(uso.fecha)}
               </span>
+              {uso.tipo !== "general" && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: TIPOS_VIDA[uso.tipo].color }}
+                >
+                  {TIPOS_VIDA[uso.tipo].etiqueta}
+                </span>
+              )}
               {uso.motivo !== null ? (
                 <span>{uso.motivo}</span>
               ) : (

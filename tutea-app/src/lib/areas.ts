@@ -22,6 +22,16 @@ export const AREAS: Record<
     texto: "text-[var(--area-administrativo)]",
     fondo: "bg-[var(--area-administrativo-suave)]",
   },
+  marketing: {
+    etiqueta: "Marketing",
+    texto: "text-[var(--area-marketing)]",
+    fondo: "bg-[var(--area-marketing-suave)]",
+  },
+  gerencia: {
+    etiqueta: "Gerencia",
+    texto: "text-[var(--area-gerencia)]",
+    fondo: "bg-[var(--area-gerencia-suave)]",
+  },
 };
 
 export const LISTA_AREAS = Object.keys(AREAS) as Area[];

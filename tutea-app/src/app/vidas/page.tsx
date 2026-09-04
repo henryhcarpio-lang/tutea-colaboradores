@@ -31,7 +31,7 @@ export default async function Vidas() {
           vidasAsignadas: true,
           usos: {
             orderBy: { fecha: "asc" },
-            select: { id: true, fecha: true, motivo: true },
+            select: { id: true, fecha: true, motivo: true, tipo: true },
           },
         },
       },
@@ -49,6 +49,7 @@ export default async function Vidas() {
         usos: periodo.usos.map((u) => ({
           id: u.id,
           fecha: u.fecha.toISOString(),
+          tipo: u.tipo,
           // El motivo ni siquiera se manda al navegador si no hay sesión de
           // admin: ocultarlo con CSS dejaría el dato al alcance de cualquiera.
           motivo: admin ? u.motivo : null,

@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { TipoVida } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { exigirAdmin } from "@/lib/auth";
 import { hoyEnLima } from "@/lib/fecha";
 import { reiniciarMesActual } from "@/lib/vidas";
+import { LISTA_TIPOS_VIDA } from "@/lib/tipo-vida";
 
 export type EstadoVida = { error?: string; ok?: boolean };
 
@@ -22,6 +24,7 @@ export async function usarVida(
   const periodoId = String(datos.get("periodoId") ?? "");
   const motivo = String(datos.get("motivo") ?? "").trim();
   const fechaTexto = String(datos.get("fecha") ?? "");
+  const tipoTexto = String(datos.get("tipo") ?? "general");
 
   if (!periodoId) return { error: "Falta el período." };
   if (motivo.length < 3) return { error: "Escribí el motivo del permiso." };
@@ -29,6 +32,10 @@ export async function usarVida(
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) {
     return { error: "Elegí la fecha del permiso." };
   }
+  if (!LISTA_TIPOS_VIDA.includes(tipoTexto as TipoVida)) {
+    return { error: "Elegí un tipo de permiso válido." };
+  }
+  const tipo = tipoTexto as TipoVida;
 
   const fecha = new Date(`${fechaTexto}T00:00:00.000Z`);
   if (Number.isNaN(fecha.getTime())) return { error: "La fecha no es válida." };
@@ -51,6 +58,7 @@ export async function usarVida(
       periodoId: periodo.id,
       fecha,
       motivo,
+      tipo,
     },
   });
 

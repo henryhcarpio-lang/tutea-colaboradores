@@ -177,6 +177,11 @@ export function FormularioColaborador({
               onChange={(e) => setVidas(e.target.value)}
               className={CLASE_CAMPO}
             />
+            <p className="mt-1.5 text-xs text-texto-suave">
+              {editando
+                ? "Es el cupo con el que abre cada mes. Al guardar, también se actualizan los corazones del mes en curso."
+                : "El cupo con el que va a abrir cada mes en la pantalla de Vidas."}
+            </p>
           </div>
 
           <div className="sm:col-span-2">

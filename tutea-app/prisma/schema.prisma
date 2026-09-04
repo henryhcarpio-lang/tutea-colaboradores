@@ -16,6 +16,15 @@ enum Area {
   operativo
   comercial
   administrativo
+  marketing
+  gerencia
+}
+
+/// Motivo de un permiso, para pintar el corazón distinto según la razón.
+enum TipoVida {
+  general
+  medico
+  desastre
 }
 
 enum DiaSemana {
@@ -120,6 +129,9 @@ model LifeUsage {
   fecha          DateTime @db.Date
   /// Dato sensible: no se expone nunca en la vista pública.
   motivo         String
+  /// Descanso médico y desastre natural pintan el corazón distinto; el resto
+  /// queda como "general".
+  tipo           TipoVida @default(general)
   registradoEn   DateTime @default(now()) @map("registrado_en")
 
   colaborador Collaborator      @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)

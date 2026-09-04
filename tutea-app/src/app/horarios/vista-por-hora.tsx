@@ -1,8 +1,8 @@
 "use client";
 
-import { AREAS } from "@/lib/areas";
 import { Avatar } from "@/components/avatar";
 import { EstadoVacio } from "@/components/seccion";
+import { colorDePersona } from "@/lib/color-persona";
 import { DIAS, aHoraLocal, rangoLegible } from "@/lib/horarios";
 import type { DiaSemana } from "@prisma/client";
 import type { FilaHorario } from "./cuadricula";
@@ -18,9 +18,9 @@ import type { FilaHorario } from "./cuadricula";
 // lugar exacto, sin redondear.
 const MINUTOS_POR_RANURA = 5;
 /** Ancho mínimo de la barra de una persona, con su foto adentro. */
-const ANCHO_POR_PERSONA = 40;
-const ANCHO_MINIMO_DIA = 120;
-const ANCHO_COLUMNA_HORA = 64;
+const ANCHO_POR_PERSONA = 36;
+const ANCHO_MINIMO_DIA = 90;
+const ANCHO_COLUMNA_HORA = 52;
 const ALTO_RANURA = 5; // px
 const MINUTOS_ENTRE_ETIQUETAS = 30;
 const RANURAS_ENTRE_ETIQUETAS = MINUTOS_ENTRE_ETIQUETAS / MINUTOS_POR_RANURA;
@@ -68,17 +68,38 @@ function calcularTramos(filas: FilaHorario[]): Tramo[] {
 }
 
 /**
- * Personas que trabajan en un día. El ancho de la columna sale de acá: con el
- * equipo completo hay mañanas de nueve personas a la vez, y si el día no se
- * ensancha las barras se encogen hasta que los nombres se pisan.
+ * Pico de gente trabajando al mismo tiempo en un día (no el total de personas
+ * que pasan por ese día). Una persona de mañana y otra de tarde nunca ocupan
+ * columna a la vez, así que dimensionar por el pico real —no por la suma—
+ * es lo que permite que los 6 días entren en una sola vista sin desperdiciar
+ * ancho en horas donde casi nadie está.
  */
-function presentesEnDia(filas: FilaHorario[], dia: DiaSemana): number {
-  return filas.filter((f) => f.bloques.some((b) => b.diaSemana === dia)).length;
+function picoDeGenteEnDia(filas: FilaHorario[], dia: DiaSemana): number {
+  const eventos: { minuto: number; delta: number }[] = [];
+  for (const f of filas) {
+    for (const b of f.bloques) {
+      if (b.diaSemana !== dia) continue;
+      eventos.push({ minuto: b.horaInicioMin, delta: 1 });
+      eventos.push({ minuto: b.horaFinMin, delta: -1 });
+    }
+  }
+  // A igual minuto, una salida cierra antes de que abra una entrada: dos
+  // bloques pegados (uno termina cuando el otro arranca) no cuentan como
+  // solapados.
+  eventos.sort((a, b) => a.minuto - b.minuto || a.delta - b.delta);
+
+  let actual = 0;
+  let pico = 0;
+  for (const e of eventos) {
+    actual += e.delta;
+    if (actual > pico) pico = actual;
+  }
+  return pico;
 }
 
 function columnasDeLaGrilla(filas: FilaHorario[]): string {
   const anchos = DIAS.map((d) =>
-    Math.max(ANCHO_MINIMO_DIA, presentesEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
+    Math.max(ANCHO_MINIMO_DIA, picoDeGenteEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
   );
   return `${ANCHO_COLUMNA_HORA}px ${anchos.map((a) => `minmax(${a}px, 1fr)`).join(" ")}`;
 }
@@ -88,7 +109,7 @@ function anchoTotal(filas: FilaHorario[]): number {
     ANCHO_COLUMNA_HORA +
     DIAS.reduce(
       (t, d) =>
-        t + Math.max(ANCHO_MINIMO_DIA, presentesEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
+        t + Math.max(ANCHO_MINIMO_DIA, picoDeGenteEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
       0,
     )
   );
@@ -135,9 +156,9 @@ function ColumnaDia({
 
   return (
     <div
-      className="grid gap-x-1 border-l border-borde px-1"
+      className="grid gap-x-0.5 border-l border-borde px-0.5"
       style={{
-        gridTemplateColumns: `repeat(${presentes.length}, minmax(34px, 1fr))`,
+        gridTemplateColumns: `repeat(${presentes.length}, minmax(${ANCHO_POR_PERSONA - 4}px, 1fr))`,
         gridTemplateRows: `repeat(${ranuras}, ${ALTO_RANURA}px)`,
       }}
     >
@@ -154,23 +175,24 @@ function ColumnaDia({
               Math.round((b.horaInicioMin - desde) / MINUTOS_POR_RANURA) + 1;
             const filaFin =
               Math.round((b.horaFinMin - desde) / MINUTOS_POR_RANURA) + 1;
-            const colores = AREAS[f.colaborador.area];
+            // Color por persona, no por área: con dos o más colegas de la
+            // misma área en la misma franja, el color de área ya no alcanza
+            // para distinguirlos.
+            const colores = colorDePersona(f.colaborador.id);
             const etiqueta = `${f.colaborador.nombre}: ${rangoLegible(
               b.horaInicioMin,
               b.horaFinMin,
             )}`;
 
-            // La foto va arriba y el nombre en vertical debajo. Con varias
-            // personas de la misma área el color ya no alcanza para
-            // distinguirlas, y la cara se reconoce más rápido que un nombre
-            // rotado.
+            // La foto va arriba y el nombre en vertical debajo. La cara se
+            // reconoce más rápido que un nombre rotado.
             const contenido = (
               <span className="flex h-full w-full flex-col items-center gap-1 py-1">
                 <Avatar
                   nombre={f.colaborador.nombre}
                   foto={f.colaborador.foto}
                   area={f.colaborador.area}
-                  tamano="xs"
+                  tamano="sm"
                 />
                 <span
                   className="min-h-0 flex-1 truncate text-[11px] font-semibold"
@@ -183,7 +205,13 @@ function ColumnaDia({
               </span>
             );
 
-            const clases = `flex items-start justify-center overflow-hidden rounded-md ${colores.fondo} ${colores.texto}`;
+            const estilo = {
+              gridColumn: columna + 1,
+              gridRow: `${filaInicio} / ${filaFin}`,
+              backgroundColor: colores.fondo,
+              color: colores.texto,
+            };
+            const clases = "flex items-start justify-center overflow-hidden rounded-md";
 
             return admin ? (
               <button
@@ -191,24 +219,13 @@ function ColumnaDia({
                 type="button"
                 title={`${etiqueta} — clic para editar`}
                 onClick={() => onEditar(f.colaborador.id)}
-                style={{
-                  gridColumn: columna + 1,
-                  gridRow: `${filaInicio} / ${filaFin}`,
-                }}
+                style={estilo}
                 className={`${clases} ring-inset hover:ring-2 hover:ring-acento/40`}
               >
                 {contenido}
               </button>
             ) : (
-              <span
-                key={`${f.colaborador.id}-${i}`}
-                title={etiqueta}
-                style={{
-                  gridColumn: columna + 1,
-                  gridRow: `${filaInicio} / ${filaFin}`,
-                }}
-                className={clases}
-              >
+              <span key={`${f.colaborador.id}-${i}`} title={etiqueta} style={estilo} className={clases}>
                 {contenido}
               </span>
             );
@@ -250,7 +267,7 @@ function GrillaTramo({
               style={{
                 gridRow: `${i * RANURAS_ENTRE_ETIQUETAS + 1} / span ${RANURAS_ENTRE_ETIQUETAS}`,
               }}
-              className="border-t border-borde/60 px-3 pt-0.5 text-[11px] font-medium tabular-nums text-texto-suave"
+              className="border-t border-borde/60 px-2 pt-0.5 text-[11px] font-medium tabular-nums text-texto-suave"
             >
               {aHoraLocal(minuto)}
             </div>
@@ -305,13 +322,13 @@ export function VistaPorHora({
             className="grid border-b border-borde bg-fondo/60"
             style={{ gridTemplateColumns: columnas }}
           >
-            <div className="p-3 text-xs font-semibold text-texto-suave">
+            <div className="p-2 text-xs font-semibold text-texto-suave">
               Hora
             </div>
             {DIAS.map((dia) => (
               <div
                 key={dia.clave}
-                className="border-l border-borde p-3 text-center text-xs font-semibold uppercase tracking-wide text-texto-suave"
+                className="border-l border-borde p-2 text-center text-xs font-semibold uppercase tracking-wide text-texto-suave"
               >
                 {dia.etiqueta}
               </div>

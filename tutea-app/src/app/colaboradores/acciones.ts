@@ -190,10 +190,23 @@ export async function editarColaborador(
   const quitarFoto = datos.get("quitarFoto") === "1";
   const { foto, ...resto } = validado;
 
-  await prisma.collaborator.update({
-    where: { id },
-    data: quitarFoto ? { ...resto, foto: null } : foto ? validado : resto,
+  await prisma.$transaction(async (tx) => {
+    await tx.collaborator.update({
+      where: { id },
+      data: quitarFoto ? { ...resto, foto: null } : foto ? validado : resto,
+    });
+
+    // El cupo por defecto es la plantilla para meses futuros; sin esto, el
+    // admin cambia el número acá y no ve ningún cambio en los corazones de
+    // Vidas hasta el mes que viene, lo que parece que el campo "no hace
+    // nada". Corregir el cupo del mes en curso es la corrección más obvia
+    // cuando se edita el perfil, así que se sincroniza también.
+    await tx.lifeMonthlyPeriod.updateMany({
+      where: { colaboradorId: id, cerradoEn: null },
+      data: { vidasAsignadas: validado.vidasMensualesDefault },
+    });
   });
+
   refrescar();
   return { ok: true };
 }

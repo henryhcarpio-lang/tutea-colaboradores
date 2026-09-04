@@ -28,7 +28,7 @@ export default async function HistorialVidas() {
           cerradoEn: true,
           usos: {
             orderBy: { fecha: "asc" },
-            select: { id: true, fecha: true, motivo: true },
+            select: { id: true, fecha: true, motivo: true, tipo: true },
           },
         },
       },
@@ -46,6 +46,7 @@ export default async function HistorialVidas() {
         usos: p.usos.map((u) => ({
           id: u.id,
           fecha: u.fecha.toISOString(),
+          tipo: u.tipo,
           motivo: admin ? u.motivo : null,
         })),
       })),

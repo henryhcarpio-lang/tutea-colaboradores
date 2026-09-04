@@ -171,6 +171,10 @@ export function EditorBloques({
                 <div key={b.id} className="flex flex-wrap items-center gap-2">
                   <input
                     type="time"
+                    // El valor sigue en 24 h (lo que exige el input nativo),
+                    // pero lang="en-US" hace que Chrome y Edge lo muestren con
+                    // reloj de 12 horas y AM/PM en vez de 24 h.
+                    lang="en-US"
                     value={b.inicio}
                     onChange={(e) =>
                       cambiar(dia.clave, b.id, "inicio", e.target.value)
@@ -181,6 +185,7 @@ export function EditorBloques({
                   <span className="text-sm text-texto-suave">a</span>
                   <input
                     type="time"
+                    lang="en-US"
                     value={b.fin}
                     onChange={(e) =>
                       cambiar(dia.clave, b.id, "fin", e.target.value)

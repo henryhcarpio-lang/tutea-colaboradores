@@ -92,6 +92,26 @@ La otra tipografía del brandbook, Averta, es comercial y no está en Google
 Fonts. Si Tutea tiene la licencia y los `.woff2`, se suma como fuente local sin
 tocar nada más.
 
+Marketing y Gerencia (agregadas después del brandbook original) usan colores
+fuera de esa paleta —rosa y dorado— porque ya no quedaba ningún tono de familia
+sin repetir entre las cinco áreas.
+
+## Cuadrícula de horarios: color por persona, no por área
+
+En la vista "Por hora" cada barra usa un color propio del colaborador
+(`src/lib/color-persona.ts`, un tono estable calculado a partir de su id), no
+el color de su área: con varias personas de la misma área en la misma franja,
+un solo color por área ya no alcanzaba para distinguirlas. El ancho de cada
+día sale del pico real de gente trabajando a la vez ese día —no de la suma de
+todo el mundo que pasa por ese día—, y la cuadrícula se sale del ancho de
+lectura de la página (`cuadricula.tsx`) para aprovechar todo el monitor.
+
+## Tipo de permiso en Vidas
+
+`LifeUsage.tipo` (`general` / `medico` / `desastre`) pinta el corazón gastado
+según el motivo: celeste con curita para descanso médico, verde para desastre
+natural. Vive en `src/lib/tipo-vida.ts`, junto a los colores.
+
 ## Cómo se guarda un horario
 
 `ScheduleBlock` guarda siempre el horario **vigente**, nunca versiones. Al

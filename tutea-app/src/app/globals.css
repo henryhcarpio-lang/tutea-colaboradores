@@ -28,13 +28,19 @@
   --peligro-suave: #fdeaee;
 
   /* Áreas. Operativo y administrativo son ambos azules de marca; se separan
-     por luminosidad y por el fondo teñido de cada insignia. */
+     por luminosidad y por el fondo teñido de cada insignia. Marketing y
+     Gerencia usan colores fuera de la paleta de marca (rosa y dorado) porque
+     ya no queda ningún tono de familia sin repetir entre las cinco áreas. */
   --area-operativo: #154db2;
   --area-operativo-suave: #eaf1fd;
   --area-comercial: #029336;
   --area-comercial-suave: #e6f8ee;
   --area-administrativo: #6d28d9;
   --area-administrativo-suave: #f1ebfe;
+  --area-marketing: #db2777;
+  --area-marketing-suave: #fce7f3;
+  --area-gerencia: #b45309;
+  --area-gerencia-suave: #fef3c7;
 }
 
 @theme inline {

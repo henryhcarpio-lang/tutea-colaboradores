@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
-import type { Collaborator } from "@prisma/client";
-import { HeartMinus, Minus, Plus, RotateCcw } from "lucide-react";
+import type { Collaborator, TipoVida } from "@prisma/client";
+import { HeartMinus, Minus, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
 import { Corazones } from "./corazones";
+import { LISTA_TIPOS_VIDA, TIPOS_VIDA } from "@/lib/tipo-vida";
 import {
   ajustarCupo,
   anularUso,
@@ -18,6 +19,7 @@ import {
 export type Uso = {
   id: string;
   fecha: string;
+  tipo: TipoVida;
   /** Solo llega al navegador si quien mira es admin (§2 del spec). */
   motivo: string | null;
 };
@@ -54,6 +56,7 @@ function FormularioUso({
   const [estado, accion, pendiente] = useActionState(usarVida, ESTADO_INICIAL);
   const [fecha, setFecha] = useState(hoy);
   const [motivo, setMotivo] = useState("");
+  const [tipo, setTipo] = useState<TipoVida>("general");
 
   useEffect(() => {
     if (estado.ok) onCerrar();
@@ -72,6 +75,21 @@ function FormularioUso({
             onChange={(e) => setFecha(e.target.value)}
             className={`${CLASE_CAMPO} mt-1`}
           />
+        </label>
+        <label className="text-xs font-medium">
+          Tipo
+          <select
+            name="tipo"
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value as TipoVida)}
+            className={`${CLASE_CAMPO} mt-1`}
+          >
+            {LISTA_TIPOS_VIDA.map((t) => (
+              <option key={t} value={t}>
+                {TIPOS_VIDA[t].etiqueta}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="min-w-[180px] flex-1 text-xs font-medium">
           Motivo
@@ -160,7 +178,7 @@ function Tarjeta({
           <div className="mt-2">
             <Corazones
               asignadas={fila.vidasAsignadas}
-              usadas={usadas}
+              usos={fila.usos.map((u) => ({ tipo: u.tipo }))}
               indiceAnimado={indiceAnimado}
             />
           </div>
@@ -247,6 +265,14 @@ function Tarjeta({
               <span className="font-medium text-texto">
                 {fechaCorta(uso.fecha)}
               </span>
+              {uso.tipo !== "general" && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: TIPOS_VIDA[uso.tipo].color }}
+                >
+                  {TIPOS_VIDA[uso.tipo].etiqueta}
+                </span>
+              )}
               {uso.motivo !== null ? (
                 <span>{uso.motivo}</span>
               ) : (
@@ -256,14 +282,16 @@ function Tarjeta({
                 <button
                   type="button"
                   disabled={pendiente}
+                  title="Anular este uso, por si fue un error"
                   onClick={() =>
                     iniciar(() => {
                       void anularUso(uso.id);
                     })
                   }
-                  className="ml-auto hover:text-peligro hover:underline disabled:opacity-50"
+                  className="ml-auto flex items-center gap-1 hover:text-peligro hover:underline disabled:opacity-50"
                 >
-                  anular
+                  <Trash2 aria-hidden size={13} strokeWidth={1.75} />
+                  Anular
                 </button>
               )}
             </li>

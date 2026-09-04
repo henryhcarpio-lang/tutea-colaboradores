@@ -238,18 +238,26 @@ export function Cuadricula({
           titulo="Ningún colaborador coincide con el filtro"
           detalle="Probá con otra área o quitá los filtros para ver a todo el equipo."
         />
-      ) : vista === "hora" ? (
-        <VistaPorHora
-          filas={visibles}
-          admin={admin}
-          onEditar={setEditandoId}
-        />
       ) : (
-        <VistaPorColaborador
-          filas={visibles}
-          admin={admin}
-          onEditar={setEditandoId}
-        />
+        // La página tiene un ancho de lectura cómodo (max-w-6xl), pero seis
+        // días con el equipo completo necesitan más lugar del que da esa
+        // columna angosta. Esta caja se sale del contenedor y usa todo el
+        // ancho de la ventana, así entran más días sin desplazamiento.
+        <div className="relative left-1/2 right-1/2 -mx-[50vw] w-screen px-4 sm:px-6 lg:px-10">
+          {vista === "hora" ? (
+            <VistaPorHora
+              filas={visibles}
+              admin={admin}
+              onEditar={setEditandoId}
+            />
+          ) : (
+            <VistaPorColaborador
+              filas={visibles}
+              admin={admin}
+              onEditar={setEditandoId}
+            />
+          )}
+        </div>
       )}
     </div>
   );
