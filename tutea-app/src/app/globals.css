@@ -41,6 +41,13 @@
   --area-marketing-suave: #fce7f3;
   --area-gerencia: #b45309;
   --area-gerencia-suave: #fef3c7;
+
+  /* Estado de un evento del calendario. En desarrollo y finalizado reusan el
+     azul y el verde de marca (mismo significado que en el resto del
+     sistema); pendiente es el único color nuevo, porque ningún tono de marca
+     transmitía "todavía no arrancó". */
+  --evento-pendiente: #d97706;
+  --evento-pendiente-suave: #fef3c7;
 }
 
 @theme inline {

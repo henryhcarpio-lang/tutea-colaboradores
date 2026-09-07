@@ -1,5 +1,6 @@
 import {
   CalendarClock,
+  CalendarRange,
   Cake,
   Heart,
   House,
@@ -52,6 +53,14 @@ export const MODULOS: Modulo[] = [
     detalle:
       "Quién cumple años este mes, y un aviso destacado cuando el día se acerca.",
     Icono: Cake,
+    soloAdmin: false,
+  },
+  {
+    href: "/calendario",
+    etiqueta: "Calendario",
+    detalle:
+      "Eventos de la empresa por mes: feriados, campañas e hitos, con su estado.",
+    Icono: CalendarRange,
     soloAdmin: false,
   },
   {

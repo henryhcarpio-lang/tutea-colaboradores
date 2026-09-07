@@ -27,6 +27,13 @@ enum TipoVida {
   desastre
 }
 
+/// Estado de un evento del calendario; define su color en la vista mensual.
+enum EstadoEvento {
+  pendiente
+  en_desarrollo
+  finalizado
+}
+
 enum DiaSemana {
   lunes
   martes
@@ -140,4 +147,19 @@ model LifeUsage {
   @@index([periodoId])
   @@index([colaboradorId, fecha])
   @@map("life_usages")
+}
+
+/// Evento del calendario de la empresa (feriados, campañas, hitos). No está
+/// ligado a un colaborador: es de la empresa, no de una persona.
+model CalendarEvent {
+  id            String       @id @default(uuid())
+  titulo        String
+  descripcion   String?      @db.Text
+  fecha         DateTime     @db.Date
+  estado        EstadoEvento @default(pendiente)
+  creadoEn      DateTime     @default(now()) @map("creado_en")
+  actualizadoEn DateTime     @updatedAt @map("actualizado_en")
+
+  @@index([fecha])
+  @@map("calendar_events")
 }

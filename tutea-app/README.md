@@ -56,6 +56,7 @@ src/
 │   ├── vidas/              Corazones, permisos y cierre mensual
 │   │   └── historial/      Meses ya archivados
 │   ├── cumpleanos/         Cumpleaños del mes y aviso de los próximos 7 días
+│   ├── calendario/         Calendario mensual de eventos de la empresa
 │   ├── colaboradores/      CRUD de colaboradores — única sección que exige admin
 │   ├── ingresar/           Login de gerencia
 │   └── api/sesion/salir/   Cierre de sesión
@@ -73,6 +74,8 @@ src/
     ├── historial.ts        Lectura y comparación de snapshots de horario
     ├── vidas.ts            Apertura y cierre perezoso de períodos mensuales
     ├── cumpleanos.ts       Edad, días que faltan y ventana de aviso
+    ├── calendario.ts       Grilla de 6 semanas fijas y navegación entre meses
+    ├── estado-evento.ts    Estados del calendario y su color
     ├── imagen.ts           Redimensionado de fotos a 400x400 en el navegador
     └── fecha.ts            Todo el manejo de America/Lima
 ```
@@ -111,6 +114,24 @@ lectura de la página (`cuadricula.tsx`) para aprovechar todo el monitor.
 `LifeUsage.tipo` (`general` / `medico` / `desastre`) pinta el corazón gastado
 según el motivo: celeste con curita para descanso médico, verde para desastre
 natural. Vive en `src/lib/tipo-vida.ts`, junto a los colores.
+
+## Calendario de eventos
+
+`CalendarEvent` es una tabla simple, sin relación a `Collaborator`: son eventos
+de la empresa (feriados, campañas, hitos), no de una persona. Es de solo
+lectura pública, como el resto del sistema; solo el admin crea, edita y borra.
+
+La grilla mensual (`src/lib/calendario.ts`) siempre dibuja **6 semanas fijas**
+(42 días), completando con días del mes anterior y siguiente, para que la
+altura no salte al navegar entre un mes de 4 semanas y uno de 6. La consulta a
+la base usa el rango de la grilla completa, no el del mes, así un evento
+cargado en uno de esos días de relleno tampoco se pierde.
+
+El estado (`pendiente` / `en_desarrollo` / `finalizado`) define el color de
+cada evento en la vista — ver `src/lib/estado-evento.ts`. En desarrollo y
+finalizado reusan el azul y el verde de marca; pendiente es el único color
+nuevo del sistema (ámbar), porque ningún tono de marca transmitía "todavía no
+arrancó".
 
 ## Cómo se guarda un horario
 
