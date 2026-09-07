@@ -3,6 +3,7 @@ import { esAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { EncabezadoSeccion, EstadoVacio } from "@/components/seccion";
 import { etiquetaMesPeriodo } from "@/lib/fecha";
+import { urlFoto } from "@/lib/foto";
 import { ListaCierres, type CierreColaborador } from "./lista-cierres";
 
 export const metadata = { title: "Historial de vidas" };
@@ -18,6 +19,7 @@ export default async function HistorialVidas() {
       nombre: true,
       foto: true,
       area: true,
+      actualizadoEn: true,
       periodos: {
         where: { cerradoEn: { not: null } },
         orderBy: { cerradoEn: "desc" },
@@ -36,8 +38,8 @@ export default async function HistorialVidas() {
   });
 
   const historiales: CierreColaborador[] = colaboradores.map(
-    ({ periodos, ...colaborador }) => ({
-      colaborador,
+    ({ periodos, actualizadoEn, foto, id, ...resto }) => ({
+      colaborador: { id, foto: urlFoto(id, foto, actualizadoEn), ...resto },
       cierres: periodos.map((p) => ({
         id: p.id,
         mes: etiquetaMesPeriodo(p.mesPeriodo),

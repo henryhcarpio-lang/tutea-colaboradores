@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { asegurarPeriodos } from "@/lib/vidas";
 import { EncabezadoSeccion } from "@/components/seccion";
 import { etiquetaMesPeriodo, hoyEnLima, mesPeriodoActual } from "@/lib/fecha";
+import { urlFoto } from "@/lib/foto";
 import { PanelVidas, type FilaVidas } from "./panel-vidas";
 
 export const metadata = { title: "Vidas" };
@@ -23,6 +24,7 @@ export default async function Vidas() {
       nombre: true,
       foto: true,
       area: true,
+      actualizadoEn: true,
       periodos: {
         where: { cerradoEn: null },
         take: 1,
@@ -40,10 +42,10 @@ export default async function Vidas() {
 
   const filas: FilaVidas[] = colaboradores
     .filter((c) => c.periodos.length > 0)
-    .map(({ periodos, ...colaborador }) => {
+    .map(({ periodos, actualizadoEn, foto, id, ...resto }) => {
       const periodo = periodos[0];
       return {
-        colaborador,
+        colaborador: { id, foto: urlFoto(id, foto, actualizadoEn), ...resto },
         periodoId: periodo.id,
         vidasAsignadas: periodo.vidasAsignadas,
         usos: periodo.usos.map((u) => ({

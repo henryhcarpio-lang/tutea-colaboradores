@@ -4,6 +4,7 @@ import { InsigniaArea } from "@/components/insignia-area";
 import { EncabezadoSeccion, EstadoVacio } from "@/components/seccion";
 import { etiquetaMesPeriodo, hoyEnLima, mesPeriodoActual, partesEnLima } from "@/lib/fecha";
 import { calcularCumple, cuentaRegresiva, DIAS_DE_AVISO } from "@/lib/cumpleanos";
+import { urlFoto } from "@/lib/foto";
 import { TarjetaCumple } from "./tarjeta-cumple";
 
 export const metadata = { title: "Cumpleaños" };
@@ -17,6 +18,7 @@ export default async function Cumpleanos() {
       nombre: true,
       foto: true,
       area: true,
+      actualizadoEn: true,
       fechaNacimiento: true,
     },
   });
@@ -27,9 +29,11 @@ export default async function Cumpleanos() {
   // en el módulo hasta que gerencia complete el dato.
   const conCumple = colaboradores
     .filter((c) => c.fechaNacimiento !== null)
-    .map((c) => ({
-      ...c,
-      cumple: calcularCumple(c.fechaNacimiento!),
+    .map(({ actualizadoEn, foto, id, ...resto }) => ({
+      ...resto,
+      id,
+      foto: urlFoto(id, foto, actualizadoEn),
+      cumple: calcularCumple(resto.fechaNacimiento!),
     }));
 
   const sinFecha = colaboradores.filter((c) => c.fechaNacimiento === null);

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { asegurarPeriodosVacacion } from "@/lib/vacaciones-servidor";
 import { EncabezadoSeccion } from "@/components/seccion";
 import { hoyEnLima } from "@/lib/fecha";
+import { urlFoto } from "@/lib/foto";
 import { PanelVacaciones, type FilaVacaciones } from "./panel-vacaciones";
 
 export const metadata = { title: "Vacaciones" };
@@ -22,6 +23,7 @@ export default async function Vacaciones() {
       nombre: true,
       foto: true,
       area: true,
+      actualizadoEn: true,
       fechaIngreso: true,
       periodosVacacion: {
         where: { cerradoEn: null },
@@ -41,13 +43,13 @@ export default async function Vacaciones() {
   });
 
   const filas: FilaVacaciones[] = colaboradores.map(
-    ({ periodosVacacion, fechaIngreso, ...colaborador }) => {
+    ({ periodosVacacion, fechaIngreso, actualizadoEn, foto, id, ...resto }) => {
       // Si más adelante se borra la fecha de ingreso, un período que había
       // quedado abierto no debe seguir mostrándose como vigente: sin fecha de
       // ingreso no hay de dónde sacar el próximo aniversario.
       const p = fechaIngreso ? (periodosVacacion[0] ?? null) : null;
       return {
-        colaborador,
+        colaborador: { id, foto: urlFoto(id, foto, actualizadoEn), ...resto },
         periodo: p
           ? {
               id: p.id,

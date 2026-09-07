@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { EncabezadoSeccion, EstadoVacio } from "@/components/seccion";
 import { leerSnapshot } from "@/lib/historial";
+import { urlFoto } from "@/lib/foto";
 import { ListaHistorial, type HistorialColaborador } from "./lista-historial";
 
 export const metadata = { title: "Historial de horarios" };
@@ -17,6 +18,7 @@ export default async function Historial() {
       nombre: true,
       foto: true,
       area: true,
+      actualizadoEn: true,
       historial: {
         orderBy: { fechaCambio: "desc" },
         select: { id: true, fechaCambio: true, horarioAnterior: true, horarioNuevo: true },
@@ -25,8 +27,8 @@ export default async function Historial() {
   });
 
   const historiales: HistorialColaborador[] = colaboradores.map(
-    ({ historial, ...colaborador }) => ({
-      colaborador,
+    ({ historial, actualizadoEn, foto, id, ...resto }) => ({
+      colaborador: { id, foto: urlFoto(id, foto, actualizadoEn), ...resto },
       cambios: historial.map((h) => ({
         id: h.id,
         fechaCambio: h.fechaCambio.toISOString(),
