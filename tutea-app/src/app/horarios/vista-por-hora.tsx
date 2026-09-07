@@ -1,9 +1,10 @@
 "use client";
 
+import { useMemo } from "react";
 import { Avatar } from "@/components/avatar";
 import { EstadoVacio } from "@/components/seccion";
-import { colorDePersona } from "@/lib/color-persona";
-import { DIAS, aHoraLocal, rangoLegible } from "@/lib/horarios";
+import { colorPorIndice } from "@/lib/color-persona";
+import { DIAS, aHoraLocal, rangoLegible, type BloqueSimple } from "@/lib/horarios";
 import type { DiaSemana } from "@prisma/client";
 import type { FilaHorario } from "./cuadricula";
 
@@ -17,8 +18,8 @@ import type { FilaHorario } from "./cuadricula";
 // Granularidad de 5 minutos: permite que una entrada a las 8:50 caiga en su
 // lugar exacto, sin redondear.
 const MINUTOS_POR_RANURA = 5;
-/** Ancho mínimo de la barra de una persona, con su foto adentro. */
-const ANCHO_POR_PERSONA = 36;
+/** Ancho reservado por carril, con la foto adentro. */
+const ANCHO_POR_PERSONA = 40;
 const ANCHO_MINIMO_DIA = 90;
 const ANCHO_COLUMNA_HORA = 52;
 const ALTO_RANURA = 5; // px
@@ -67,49 +68,73 @@ function calcularTramos(filas: FilaHorario[]): Tramo[] {
   return unidos;
 }
 
-/**
- * Pico de gente trabajando al mismo tiempo en un día (no el total de personas
- * que pasan por ese día). Una persona de mañana y otra de tarde nunca ocupan
- * columna a la vez, así que dimensionar por el pico real —no por la suma—
- * es lo que permite que los 6 días entren en una sola vista sin desperdiciar
- * ancho en horas donde casi nadie está.
- */
-function picoDeGenteEnDia(filas: FilaHorario[], dia: DiaSemana): number {
-  const eventos: { minuto: number; delta: number }[] = [];
-  for (const f of filas) {
-    for (const b of f.bloques) {
-      if (b.diaSemana !== dia) continue;
-      eventos.push({ minuto: b.horaInicioMin, delta: 1 });
-      eventos.push({ minuto: b.horaFinMin, delta: -1 });
-    }
-  }
-  // A igual minuto, una salida cierra antes de que abra una entrada: dos
-  // bloques pegados (uno termina cuando el otro arranca) no cuentan como
-  // solapados.
-  eventos.sort((a, b) => a.minuto - b.minuto || a.delta - b.delta);
+type BloqueDelDia = {
+  colaborador: FilaHorario["colaborador"];
+  colorIndice: number;
+  bloque: BloqueSimple;
+};
 
-  let actual = 0;
-  let pico = 0;
-  for (const e of eventos) {
-    actual += e.delta;
-    if (actual > pico) pico = actual;
+/**
+ * Asigna cada bloque de un día a un "carril", igual que hacen los
+ * calendarios: dos bloques que se solapan en el tiempo van a carriles
+ * distintos, y dos que NUNCA coinciden pueden compartir uno aunque sean de
+ * personas distintas.
+ *
+ * Antes, cada persona se quedaba con su propia columna aunque nunca coincidiera
+ * con nadie en ese tramo: alguien de 9 a 10 y otro de 12 a 13 dentro de un
+ * mismo tramo de 9 a 13 contaban como "2 columnas necesarias" sin haber
+ * estado nunca al mismo tiempo. Eso inflaba el ancho que la columna del día
+ * pedía muy por encima de lo real, y los avatares —de tamaño fijo— terminaban
+ * desbordando sus casillas y superponiéndose con las de al lado.
+ *
+ * Con este barrido tipo "greedy interval scheduling", el número de carriles
+ * que se termina usando es exactamente el pico real de gente simultánea ese
+ * día: ni uno más.
+ */
+function asignarCarriles(
+  filas: FilaHorario[],
+  dia: DiaSemana,
+): { carriles: number; carrilDe: Map<BloqueSimple, number> } {
+  const items: BloqueDelDia[] = [];
+  filas.forEach((f, indice) => {
+    for (const b of f.bloques) {
+      if (b.diaSemana === dia) {
+        items.push({ colaborador: f.colaborador, colorIndice: indice, bloque: b });
+      }
+    }
+  });
+  items.sort((a, b) => a.bloque.horaInicioMin - b.bloque.horaInicioMin);
+
+  const finDeCarril: number[] = [];
+  const carrilDe = new Map<BloqueSimple, number>();
+  for (const { bloque } of items) {
+    let asignado = finDeCarril.findIndex((fin) => fin <= bloque.horaInicioMin);
+    if (asignado === -1) {
+      asignado = finDeCarril.length;
+      finDeCarril.push(bloque.horaFinMin);
+    } else {
+      finDeCarril[asignado] = bloque.horaFinMin;
+    }
+    carrilDe.set(bloque, asignado);
   }
-  return pico;
+  return { carriles: finDeCarril.length, carrilDe };
 }
 
-function columnasDeLaGrilla(filas: FilaHorario[]): string {
+type CarrilesPorDia = Record<DiaSemana, { carriles: number; carrilDe: Map<BloqueSimple, number> }>;
+
+function columnasDeLaGrilla(carrilesPorDia: CarrilesPorDia): string {
   const anchos = DIAS.map((d) =>
-    Math.max(ANCHO_MINIMO_DIA, picoDeGenteEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
+    Math.max(ANCHO_MINIMO_DIA, carrilesPorDia[d.clave].carriles * ANCHO_POR_PERSONA),
   );
   return `${ANCHO_COLUMNA_HORA}px ${anchos.map((a) => `minmax(${a}px, 1fr)`).join(" ")}`;
 }
 
-function anchoTotal(filas: FilaHorario[]): number {
+function anchoTotal(carrilesPorDia: CarrilesPorDia): number {
   return (
     ANCHO_COLUMNA_HORA +
     DIAS.reduce(
       (t, d) =>
-        t + Math.max(ANCHO_MINIMO_DIA, picoDeGenteEnDia(filas, d.clave) * ANCHO_POR_PERSONA),
+        t + Math.max(ANCHO_MINIMO_DIA, carrilesPorDia[d.clave].carriles * ANCHO_POR_PERSONA),
       0,
     )
   );
@@ -124,29 +149,23 @@ function ColumnaDia({
   filas,
   dia,
   tramo,
+  carriles,
+  carrilDe,
   admin,
   onEditar,
 }: {
   filas: FilaHorario[];
   dia: (typeof DIAS)[number];
   tramo: Tramo;
+  carriles: number;
+  carrilDe: Map<BloqueSimple, number>;
   admin: boolean;
   onEditar: (colaboradorId: string) => void;
 }) {
   const desde = alineado(tramo.desde);
   const ranuras = Math.ceil((tramo.hasta - desde) / MINUTOS_POR_RANURA);
 
-  // Solo ocupan columna quienes trabajan ese día dentro de este tramo.
-  const presentes = filas.filter((f) =>
-    f.bloques.some(
-      (b) =>
-        b.diaSemana === dia.clave &&
-        b.horaInicioMin < tramo.hasta &&
-        b.horaFinMin > tramo.desde,
-    ),
-  );
-
-  if (presentes.length === 0) {
+  if (carriles === 0) {
     return (
       <div className="grid place-items-start justify-center border-l border-borde pt-2">
         <span className="text-xs text-texto-suave/50">—</span>
@@ -154,83 +173,91 @@ function ColumnaDia({
     );
   }
 
+  // Los bloques activos en este tramo, cada uno con el carril fijo que le
+  // tocó para todo el día (no solo para este tramo): así una persona no
+  // "salta" de columna entre la franja de la mañana y la de la tarde.
+  const bloquesDelTramo = filas.flatMap((f, indice) =>
+    f.bloques
+      .filter(
+        (b) =>
+          b.diaSemana === dia.clave &&
+          b.horaInicioMin < tramo.hasta &&
+          b.horaFinMin > tramo.desde,
+      )
+      .map((b) => ({ colaborador: f.colaborador, colorIndice: indice, bloque: b })),
+  );
+
   return (
     <div
-      className="grid gap-x-0.5 border-l border-borde px-0.5"
+      className="grid gap-x-1 border-l border-borde px-0.5"
       style={{
-        gridTemplateColumns: `repeat(${presentes.length}, minmax(${ANCHO_POR_PERSONA - 4}px, 1fr))`,
+        gridTemplateColumns: `repeat(${carriles}, minmax(${ANCHO_POR_PERSONA - 6}px, 1fr))`,
         gridTemplateRows: `repeat(${ranuras}, ${ALTO_RANURA}px)`,
       }}
     >
-      {presentes.map((f, columna) =>
-        f.bloques
-          .filter(
-            (b) =>
-              b.diaSemana === dia.clave &&
-              b.horaInicioMin < tramo.hasta &&
-              b.horaFinMin > tramo.desde,
-          )
-          .map((b, i) => {
-            const filaInicio =
-              Math.round((b.horaInicioMin - desde) / MINUTOS_POR_RANURA) + 1;
-            const filaFin =
-              Math.round((b.horaFinMin - desde) / MINUTOS_POR_RANURA) + 1;
-            // Color por persona, no por área: con dos o más colegas de la
-            // misma área en la misma franja, el color de área ya no alcanza
-            // para distinguirlos.
-            const colores = colorDePersona(f.colaborador.id);
-            const etiqueta = `${f.colaborador.nombre}: ${rangoLegible(
-              b.horaInicioMin,
-              b.horaFinMin,
-            )}`;
+      {bloquesDelTramo.map(({ colaborador, colorIndice, bloque: b }) => {
+        const carril = carrilDe.get(b)!;
+        const filaInicio = Math.round((b.horaInicioMin - desde) / MINUTOS_POR_RANURA) + 1;
+        const filaFin = Math.round((b.horaFinMin - desde) / MINUTOS_POR_RANURA) + 1;
+        // Color por persona, no por área: con dos o más colegas de la misma
+        // área en la misma franja, el color de área ya no alcanza para
+        // distinguirlos. Sale de una paleta elegida a mano (src/lib/color-persona.ts),
+        // no de un hash, para garantizar combinaciones que se vean bien.
+        const colores = colorPorIndice(colorIndice);
+        const etiqueta = `${colaborador.nombre}: ${rangoLegible(b.horaInicioMin, b.horaFinMin)}`;
 
-            // La foto va arriba y el nombre en vertical debajo. La cara se
-            // reconoce más rápido que un nombre rotado.
-            const contenido = (
-              <span className="flex h-full w-full flex-col items-center gap-1 py-1">
-                <Avatar
-                  nombre={f.colaborador.nombre}
-                  foto={f.colaborador.foto}
-                  area={f.colaborador.area}
-                  tamano="sm"
-                />
-                <span
-                  className="min-h-0 flex-1 truncate text-[11px] font-semibold"
-                  // El nombre va en vertical porque la barra es angosta y alta;
-                  // rotado para leerse de abajo hacia arriba.
-                  style={{ writingMode: "vertical-rl", rotate: "180deg" }}
-                >
-                  {f.colaborador.nombre.split(/\s+/)[0]}
-                </span>
-              </span>
-            );
+        // La foto va arriba y el nombre en vertical debajo. La cara se
+        // reconoce más rápido que un nombre rotado.
+        const contenido = (
+          <span className="flex h-full w-full flex-col items-center gap-1 py-1">
+            <Avatar
+              nombre={colaborador.nombre}
+              foto={colaborador.foto}
+              area={colaborador.area}
+              tamano="xs"
+            />
+            <span
+              className="min-h-0 flex-1 truncate text-[11px] font-semibold"
+              // El nombre va en vertical porque la barra es angosta y alta;
+              // rotado para leerse de abajo hacia arriba.
+              style={{ writingMode: "vertical-rl", rotate: "180deg" }}
+            >
+              {colaborador.nombre.split(/\s+/)[0]}
+            </span>
+          </span>
+        );
 
-            const estilo = {
-              gridColumn: columna + 1,
-              gridRow: `${filaInicio} / ${filaFin}`,
-              backgroundColor: colores.fondo,
-              color: colores.texto,
-            };
-            const clases = "flex items-start justify-center overflow-hidden rounded-md";
+        const estilo = {
+          gridColumn: carril + 1,
+          gridRow: `${filaInicio} / ${filaFin}`,
+          backgroundColor: colores.fondo,
+          color: colores.texto,
+          // Un halo del color de fondo de la página alrededor de cada barra:
+          // aunque dos carriles queden a un par de píxeles de distancia, este
+          // "borde" los separa con claridad y evita que se lean pegados o
+          // encimados cuando hay mucha gente a la vez en el mismo tramo.
+          boxShadow: "0 0 0 2px var(--superficie)",
+        };
+        const clases = "relative flex items-start justify-center overflow-hidden rounded-md";
+        const key = `${colaborador.id}-${b.horaInicioMin}`;
 
-            return admin ? (
-              <button
-                key={`${f.colaborador.id}-${i}`}
-                type="button"
-                title={`${etiqueta} — clic para editar`}
-                onClick={() => onEditar(f.colaborador.id)}
-                style={estilo}
-                className={`${clases} ring-inset hover:ring-2 hover:ring-acento/40`}
-              >
-                {contenido}
-              </button>
-            ) : (
-              <span key={`${f.colaborador.id}-${i}`} title={etiqueta} style={estilo} className={clases}>
-                {contenido}
-              </span>
-            );
-          }),
-      )}
+        return admin ? (
+          <button
+            key={key}
+            type="button"
+            title={`${etiqueta} — clic para editar`}
+            onClick={() => onEditar(colaborador.id)}
+            style={estilo}
+            className={`${clases} ring-inset hover:ring-2 hover:ring-acento/40`}
+          >
+            {contenido}
+          </button>
+        ) : (
+          <span key={key} title={etiqueta} style={estilo} className={clases}>
+            {contenido}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -239,12 +266,14 @@ function GrillaTramo({
   filas,
   tramo,
   columnas,
+  carrilesPorDia,
   admin,
   onEditar,
 }: {
   filas: FilaHorario[];
   tramo: Tramo;
   columnas: string;
+  carrilesPorDia: CarrilesPorDia;
   admin: boolean;
   onEditar: (colaboradorId: string) => void;
 }) {
@@ -275,16 +304,21 @@ function GrillaTramo({
         })}
       </div>
 
-      {DIAS.map((dia) => (
-        <ColumnaDia
-          key={dia.clave}
-          filas={filas}
-          dia={dia}
-          tramo={tramo}
-          admin={admin}
-          onEditar={onEditar}
-        />
-      ))}
+      {DIAS.map((dia) => {
+        const { carriles, carrilDe } = carrilesPorDia[dia.clave];
+        return (
+          <ColumnaDia
+            key={dia.clave}
+            filas={filas}
+            dia={dia}
+            tramo={tramo}
+            carriles={carriles}
+            carrilDe={carrilDe}
+            admin={admin}
+            onEditar={onEditar}
+          />
+        );
+      })}
     </div>
   );
 }
@@ -298,8 +332,15 @@ export function VistaPorHora({
   admin: boolean;
   onEditar: (colaboradorId: string) => void;
 }) {
-  const tramos = calcularTramos(filas);
-  const columnas = columnasDeLaGrilla(filas);
+  const tramos = useMemo(() => calcularTramos(filas), [filas]);
+  const carrilesPorDia = useMemo(
+    () =>
+      Object.fromEntries(
+        DIAS.map((d) => [d.clave, asignarCarriles(filas, d.clave)]),
+      ) as CarrilesPorDia,
+    [filas],
+  );
+  const columnas = columnasDeLaGrilla(carrilesPorDia);
   // Quien no trabaja ninguna hora no aparece en ninguna barra: sin este pie,
   // el admin no tendría desde dónde asignarle su primer horario.
   const sinHorario = filas.filter((f) => f.bloques.length === 0);
@@ -316,7 +357,7 @@ export function VistaPorHora({
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto rounded-2xl border border-borde bg-superficie">
-        <div style={{ minWidth: anchoTotal(filas) }}>
+        <div style={{ minWidth: anchoTotal(carrilesPorDia) }}>
           {/* Encabezado de días */}
           <div
             className="grid border-b border-borde bg-fondo/60"
@@ -353,6 +394,7 @@ export function VistaPorHora({
                 filas={filas}
                 tramo={tramo}
                 columnas={columnas}
+                carrilesPorDia={carrilesPorDia}
                 admin={admin}
                 onEditar={onEditar}
               />

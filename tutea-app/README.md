@@ -101,13 +101,23 @@ sin repetir entre las cinco áreas.
 
 ## Cuadrícula de horarios: color por persona, no por área
 
-En la vista "Por hora" cada barra usa un color propio del colaborador
-(`src/lib/color-persona.ts`, un tono estable calculado a partir de su id), no
-el color de su área: con varias personas de la misma área en la misma franja,
-un solo color por área ya no alcanzaba para distinguirlas. El ancho de cada
-día sale del pico real de gente trabajando a la vez ese día —no de la suma de
-todo el mundo que pasa por ese día—, y la cuadrícula se sale del ancho de
-lectura de la página (`cuadricula.tsx`) para aprovechar todo el monitor.
+En la vista "Por hora" cada barra usa un color propio del colaborador, de una
+paleta de doce tonos elegidos a mano y repartidos cada ~30° del círculo
+cromático (`src/lib/color-persona.ts`), no el color de su área: con varias
+personas de la misma área en la misma franja, un solo color por área ya no
+alcanzaba para distinguirlas, y un tono por hash tampoco garantizaba que dos
+colores quedaran lo bastante separados como para no confundirse a simple
+vista. La cuadrícula se sale del ancho de lectura de la página
+(`cuadricula.tsx`) para aprovechar todo el monitor.
+
+Cada barra ocupa un **carril**, no una columna fija por persona: se asignan
+con el mismo algoritmo de "greedy interval scheduling" que usa cualquier
+calendario (`asignarCarriles` en `vista-por-hora.tsx`), así que el número de
+carriles de un día es exactamente su pico real de gente simultánea, ni uno
+más. Además, cada barra lleva un halo del color de fondo de la página
+(`box-shadow`) que la separa visualmente de sus vecinas aunque el carril de al
+lado quede a un par de píxeles: sin ese halo, con diez o doce personas a la
+vez el sábado a las 9, las fotos quedaban prácticamente pegadas.
 
 ## Tipo de permiso en Vidas
 

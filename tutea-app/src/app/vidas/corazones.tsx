@@ -24,14 +24,9 @@ function CorazonUsado({
     <span className={`relative inline-flex ${animar ? "romperse" : ""}`}>
       <svg viewBox="0 0 24 24" role="img" aria-label={titulo} className="h-6 w-6 shrink-0">
         <title>{titulo}</title>
-        <path
-          d={TRAZO}
-          fill={color}
-          // El excedido lleva un aro rojo fino encima de su color de tipo:
-          // "de más" es independiente del motivo por el que se usó.
-          stroke={excedida ? "#dc2626" : "none"}
-          strokeWidth={excedida ? 1.4 : 0}
-        />
+        {/* Sin borde: el color de relleno y la etiqueta "N de más" ya avisan
+            que se excedió el cupo, sin necesitar un aro alrededor. */}
+        <path d={TRAZO} fill={color} />
         {/* La grieta: una línea en zigzag del color del fondo parte el
             corazón al medio, para que se lea como "gastado" sea cual sea
             el color que tenga encima. */}
