@@ -125,6 +125,34 @@ vez el sábado a las 9, las fotos quedaban prácticamente pegadas.
 según el motivo: celeste con curita para descanso médico, verde para desastre
 natural. Vive en `src/lib/tipo-vida.ts`, junto a los colores.
 
+## Vacaciones
+
+`VacationPeriod` es el año de servicio de una persona, no el año calendario:
+arranca en el aniversario exacto de `Collaborator.fechaIngreso` (`src/lib/
+vacaciones.ts`, `ventanaDeServicio`), así que alguien que entró el 12 de marzo
+renueva cada 12 de marzo, no el 1 de enero. Sin esa fecha —opcional, mismo
+criterio que `fechaNacimiento`— a la persona no se le puede abrir ningún
+período; el módulo lo dice explícitamente en vez de mostrar un saldo inventado.
+
+Los días se cuentan **hábiles de lunes a sábado** (`diasHabilesLimaSabado`),
+no calendario: es una unidad propia del sistema, no el conteo legal de la ley
+peruana. El equivalente a los 30 días calendario de ley son 26 en esta unidad
+(se descuentan los ~4 domingos que caen en el medio), por eso `Collaborator.
+diasVacacionesDefault` arranca en 26.
+
+Igual que Vidas: **el saldo que no se usó se pierde al cerrar el año**, el
+siguiente abre limpio con el cupo por defecto, sin cron (`asegurarPeriodos
+Vacacion()` corre perezosamente al entrar al módulo, en `src/lib/vacaciones-
+servidor.ts`). Un adelanto —tomarse más días de los que quedan— se registra
+igual y se marca en la barra en vez de bloquear el registro, mismo criterio
+que un permiso excedido en Vidas.
+
+Cada goce guarda **los días como número fijo**, no los recalcula desde
+`fechaInicio`/`fechaFin` al mostrarlo: si mañana cambia la regla de conteo, un
+goce ya aprobado tiene que seguir diciendo lo que decía cuando se aprobó. El
+formulario sí sugiere el valor automáticamente apenas se eligen las fechas,
+pero queda editable para las excepciones.
+
 ## Calendario de eventos
 
 `CalendarEvent` es una tabla simple, sin relación a `Collaborator`: son eventos

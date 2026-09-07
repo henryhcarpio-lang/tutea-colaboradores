@@ -59,14 +59,26 @@ model Collaborator {
   /// Cupo por defecto con el que se abre cada mes. El cupo realmente vigente
   /// vive en LifeMonthlyPeriod.
   vidasMensualesDefault  Int      @default(2) @map("vidas_mensuales_default")
+  /// Fecha en la que empezó a trabajar. Define el aniversario que abre cada
+  /// período de vacaciones (§ Vacaciones): sin esta fecha, a esa persona no se
+  /// le puede abrir ningún período. Opcional por lo mismo que la fecha de
+  /// nacimiento: la planilla real no la trae para todos, e inventarla abriría
+  /// un período con una fecha de corte falsa.
+  fechaIngreso           DateTime? @map("fecha_ingreso") @db.Date
+  /// Días hábiles (lunes a sábado) con los que se abre cada año de servicio.
+  /// El equivalente a los 30 días calendario de ley, contados en esta unidad,
+  /// son 26 (se descuentan los ~4 domingos que caen en el medio).
+  diasVacacionesDefault  Int      @default(26) @map("dias_vacaciones_default")
   activo                 Boolean  @default(true)
   creadoEn               DateTime @default(now()) @map("creado_en")
   actualizadoEn          DateTime @updatedAt @map("actualizado_en")
 
-  bloques   ScheduleBlock[]
-  historial ScheduleHistory[]
-  periodos  LifeMonthlyPeriod[]
-  usos      LifeUsage[]
+  bloques           ScheduleBlock[]
+  historial         ScheduleHistory[]
+  periodos          LifeMonthlyPeriod[]
+  usos              LifeUsage[]
+  periodosVacacion  VacationPeriod[]
+  vacaciones        VacationUsage[]
 
   @@index([activo])
   @@map("collaborators")
@@ -147,6 +159,54 @@ model LifeUsage {
   @@index([periodoId])
   @@index([colaboradorId, fecha])
   @@map("life_usages")
+}
+
+/// Año de servicio de vacaciones. `cerradoEn = null` significa el período en
+/// curso. Arranca en el aniversario de `Collaborator.fechaIngreso` y dura un
+/// año calendario; al cerrarse, el saldo que quedó sin usar se pierde —no se
+/// arrastra al siguiente— así que un período cerrado es una foto definitiva y
+/// nunca se vuelve a tocar.
+model VacationPeriod {
+  id             String    @id @default(uuid())
+  colaboradorId  String    @map("colaborador_id")
+  /// Inicio del año de servicio (un aniversario exacto de fechaIngreso).
+  desde          DateTime  @map("desde") @db.Date
+  /// Fin del año de servicio, exclusivo (el siguiente aniversario).
+  hasta          DateTime  @map("hasta") @db.Date
+  diasAsignados  Int       @map("dias_asignados")
+  abiertoEn      DateTime  @default(now()) @map("abierto_en")
+  cerradoEn      DateTime? @map("cerrado_en")
+
+  colaborador Collaborator    @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  usos        VacationUsage[]
+
+  @@index([colaboradorId])
+  @@map("vacation_periods")
+}
+
+/// Un goce de vacaciones: un rango de fechas ya tomado. `dias` se guarda como
+/// número fijo al registrarlo —no se recalcula desde fechaInicio/fechaFin—
+/// para que un cambio futuro en la regla de conteo no reescriba en silencio
+/// lo que ya se aprobó.
+model VacationUsage {
+  id             String   @id @default(uuid())
+  colaboradorId  String   @map("colaborador_id")
+  periodoId      String   @map("periodo_id")
+  fechaInicio    DateTime @map("fecha_inicio") @db.Date
+  fechaFin       DateTime @map("fecha_fin") @db.Date
+  dias           Int
+  /// Nota opcional de gerencia (motivo, si fue adelanto, etc.). A diferencia
+  /// del motivo de Vidas, esto no es un dato sensible: sí se muestra en la
+  /// vista pública.
+  observacion    String?  @db.Text
+  registradoEn   DateTime @default(now()) @map("registrado_en")
+
+  colaborador Collaborator   @relation(fields: [colaboradorId], references: [id], onDelete: Cascade)
+  periodo     VacationPeriod @relation(fields: [periodoId], references: [id], onDelete: Cascade)
+
+  @@index([periodoId])
+  @@index([colaboradorId, fechaInicio])
+  @@map("vacation_usages")
 }
 
 /// Evento del calendario de la empresa (feriados, campañas, hitos). No está

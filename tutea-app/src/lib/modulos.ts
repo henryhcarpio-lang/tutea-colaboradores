@@ -4,6 +4,7 @@ import {
   Cake,
   Heart,
   House,
+  Plane,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -61,6 +62,14 @@ export const MODULOS: Modulo[] = [
     detalle:
       "Eventos de la empresa por mes: feriados, campañas e hitos, con su estado.",
     Icono: CalendarRange,
+    soloAdmin: false,
+  },
+  {
+    href: "/vacaciones",
+    etiqueta: "Vacaciones",
+    detalle:
+      "Días de vacaciones de cada colaborador: cuántos tiene, cuántos usó y qué fechas tomó.",
+    Icono: Plane,
     soloAdmin: false,
   },
   {

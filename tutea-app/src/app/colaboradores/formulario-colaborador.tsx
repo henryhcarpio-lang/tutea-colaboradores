@@ -44,6 +44,12 @@ export function FormularioColaborador({
   const [nacimiento, setNacimiento] = useState(
     colaborador?.fechaNacimiento ? aISO(colaborador.fechaNacimiento) : "",
   );
+  const [ingreso, setIngreso] = useState(
+    colaborador?.fechaIngreso ? aISO(colaborador.fechaIngreso) : "",
+  );
+  const [diasVacaciones, setDiasVacaciones] = useState(
+    String(colaborador?.diasVacacionesDefault ?? 26),
+  );
   const [quitarFoto, setQuitarFoto] = useState(false);
   // Solo al crear: el alta permite dejar la semana cargada de una vez, sin
   // pasar después por la cuadrícula.
@@ -200,6 +206,45 @@ export function FormularioColaborador({
             <p className="mt-1.5 text-xs text-texto-suave">
               Día, mes y año. El día se usa para avisar del cumpleaños. Si
               todavía no la sabés, se puede dejar vacía y completarla después.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="ingreso" className="text-sm font-medium">
+              Fecha de ingreso{" "}
+              <span className="font-normal text-texto-suave">(opcional)</span>
+            </label>
+            <input
+              id="ingreso"
+              name="fechaIngreso"
+              type="date"
+              value={ingreso}
+              onChange={(e) => setIngreso(e.target.value)}
+              className={CLASE_CAMPO}
+            />
+            <p className="mt-1.5 text-xs text-texto-suave">
+              Define el aniversario que abre cada año de vacaciones. Sin esta
+              fecha, la persona no aparece con saldo en el módulo Vacaciones.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="diasVacaciones" className="text-sm font-medium">
+              Días de vacaciones por año
+            </label>
+            <input
+              id="diasVacaciones"
+              name="diasVacacionesDefault"
+              type="number"
+              min={0}
+              max={60}
+              value={diasVacaciones}
+              onChange={(e) => setDiasVacaciones(e.target.value)}
+              className={CLASE_CAMPO}
+            />
+            <p className="mt-1.5 text-xs text-texto-suave">
+              Días hábiles (lunes a sábado) con los que abre cada año de
+              servicio. 26 equivale a los 30 días calendario de ley.
             </p>
           </div>
         </div>
