@@ -121,31 +121,41 @@ vez el sábado a las 9, las fotos quedaban prácticamente pegadas.
 
 ## Tipo de permiso en Vidas
 
-`LifeUsage.tipo` (`general` / `medico` / `desastre`) pinta el corazón gastado
-según el motivo: celeste con curita para descanso médico, verde para desastre
-natural. Vive en `src/lib/tipo-vida.ts`, junto a los colores.
+`LifeUsage.tipo` (`general` / `medico` / `desastre` / `recuperable` /
+`tardanza`) pinta el corazón gastado según el motivo: celeste con curita para
+descanso médico, verde para desastre natural, ámbar para un permiso
+recuperable (se repone trabajando otro día, no es un día perdido de verdad) y
+violeta con reloj para omitir una tardanza. Las cinco reducen el cupo por
+igual — la etiqueta es solo para que gerencia vea de un vistazo por qué se
+usó cada una. Vive en `src/lib/tipo-vida.ts`, junto a los colores.
 
 ## Vacaciones
 
-`VacationPeriod` es el año de servicio de una persona, no el año calendario:
-arranca en el aniversario exacto de `Collaborator.fechaIngreso` (`src/lib/
-vacaciones.ts`, `ventanaDeServicio`), así que alguien que entró el 12 de marzo
-renueva cada 12 de marzo, no el 1 de enero. Sin esa fecha —opcional, mismo
-criterio que `fechaNacimiento`— a la persona no se le puede abrir ningún
-período; el módulo lo dice explícitamente en vez de mostrar un saldo inventado.
+`VacationPeriod` es un **contrato**, no un año calendario ni un aniversario:
+Tutea recontrata por tramos (6 meses, 1 año...), así que el cupo de cada
+período sale de la duración de `Collaborator.fechaInicioContrato` /
+`fechaFinContrato` (`src/lib/vacaciones.ts`, `diasPorDuracionDeContrato`) — 7
+días hábiles cada 6 meses, 14 cada año, proporcional para otra duración. Sin
+las dos fechas —opcionales, mismo criterio que `fechaNacimiento`— a la
+persona no se le puede abrir ningún período; el módulo lo dice explícitamente
+en vez de mostrar un saldo inventado, y si el contrato ya venció y nadie
+cargó uno nuevo, lo dice también (en vez de mostrar el saldo vencido como si
+siguiera vigente).
 
-Los días se cuentan **hábiles de lunes a sábado** (`diasHabilesLimaSabado`),
-no calendario: es una unidad propia del sistema, no el conteo legal de la ley
-peruana. El equivalente a los 30 días calendario de ley son 26 en esta unidad
-(se descuentan los ~4 domingos que caen en el medio), por eso `Collaborator.
-diasVacacionesDefault` arranca en 26.
+Cada vez que gerencia carga un contrato nuevo con fechas distintas en la
+ficha del colaborador, `asegurarPeriodosVacacion()` (perezoso, sin cron, en
+`src/lib/vacaciones-servidor.ts`) archiva el período anterior tal como quedó
+—con todo lo que usó— y abre uno nuevo con el cupo que corresponda. Esos
+períodos cerrados **son el historial completo de todos los contratos** que
+tuvo la persona en la empresa, sin importar cuántas veces renovó; se ven en
+`/vacaciones/historial`, igual que el mes cerrado de Vidas.
 
-Igual que Vidas: **el saldo que no se usó se pierde al cerrar el año**, el
-siguiente abre limpio con el cupo por defecto, sin cron (`asegurarPeriodos
-Vacacion()` corre perezosamente al entrar al módulo, en `src/lib/vacaciones-
-servidor.ts`). Un adelanto —tomarse más días de los que quedan— se registra
-igual y se marca en la barra en vez de bloquear el registro, mismo criterio
-que un permiso excedido en Vidas.
+Los días de un goce puntual, en cambio, se siguen contando **hábiles de
+lunes a sábado** (`diasHabilesLimaSabado`) — una unidad distinta de la que
+define el cupo del contrato, no el conteo legal de días calendario. Un
+adelanto —tomarse más días de los que quedan— se registra igual y se marca
+en la barra en vez de bloquear el registro, mismo criterio que un permiso
+excedido en Vidas.
 
 Cada goce guarda **los días como número fijo**, no los recalcula desde
 `fechaInicio`/`fechaFin` al mostrarlo: si mañana cambia la regla de conteo, un

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EncabezadoSeccion, EstadoVacio } from "@/components/seccion";
-import { etiquetaMesPeriodo, hoyEnLima, mesPeriodoActual, partesEnLima } from "@/lib/fecha";
+import { etiquetaMesPeriodo, hoyEnLima, mesPeriodoActual, nombreMes, partesEnLima } from "@/lib/fecha";
 import { calcularCumple, cuentaRegresiva, DIAS_DE_AVISO } from "@/lib/cumpleanos";
 import { urlFoto } from "@/lib/foto";
 import { TarjetaCumple } from "./tarjeta-cumple";
@@ -23,7 +23,10 @@ export default async function Cumpleanos() {
     },
   });
 
-  const mesActual = partesEnLima().mes;
+  const { mes: mesActual, anio: anioActual } = partesEnLima();
+  // Diciembre → enero del año que viene; cualquier otro mes, +1 en el mismo año.
+  const mesQueViene = mesActual === 12 ? 1 : mesActual + 1;
+  const anioMesQueViene = mesActual === 12 ? anioActual + 1 : anioActual;
 
   // Sin fecha cargada no hay cumpleaños que anunciar: esa persona no aparece
   // en el módulo hasta que gerencia complete el dato.
@@ -41,6 +44,11 @@ export default async function Cumpleanos() {
   // La lista es la del mes corriente, ordenada por día.
   const delMes = conCumple
     .filter((c) => c.cumple.mes === mesActual)
+    .sort((a, b) => a.cumple.dia - b.cumple.dia);
+
+  // El mes que viene, para que gerencia pueda planear con anticipación.
+  const delMesQueViene = conCumple
+    .filter((c) => c.cumple.mes === mesQueViene)
     .sort((a, b) => a.cumple.dia - b.cumple.dia);
 
   const deHoy = conCumple.filter((c) => c.cumple.esHoy);
@@ -165,6 +173,43 @@ export default async function Cumpleanos() {
           ))}
         </ul>
       )}
+      {delMesQueViene.length > 0 && (
+        <section className="mt-8">
+          <h2 className="mb-3 text-sm font-semibold text-texto-suave">
+            {`El mes que viene: ${nombreMes(mesQueViene)} de ${anioMesQueViene}`}
+          </h2>
+          <ul className="space-y-3">
+            {delMesQueViene.map((c) => (
+              <li
+                key={c.id}
+                className="flex flex-wrap items-center gap-4 rounded-2xl border border-borde bg-superficie p-4 opacity-80"
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-fondo text-center leading-none">
+                  <span className="text-[10px] font-semibold uppercase text-texto-suave">
+                    {nombreMes(mesQueViene).slice(0, 3)}
+                  </span>
+                  <span className="text-base font-semibold tabular-nums">
+                    {c.cumple.dia}
+                  </span>
+                </span>
+
+                <Avatar nombre={c.nombre} foto={c.foto} area={c.area} tamano="md" />
+
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{c.nombre}</p>
+                    <InsigniaArea area={c.area} />
+                  </div>
+                  <p className="mt-0.5 text-sm text-texto-suave">
+                    Cumple {c.cumple.edad} {c.cumple.edad === 1 ? "año" : "años"}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {sinFecha.length > 0 && (
         <p className="mt-6 text-sm text-texto-suave">
           {sinFecha.length === 1

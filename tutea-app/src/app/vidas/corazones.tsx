@@ -1,7 +1,7 @@
 "use client";
 
 import type { TipoVida } from "@prisma/client";
-import { Bandage } from "lucide-react";
+import { Bandage, Clock } from "lucide-react";
 import { TIPOS_VIDA } from "@/lib/tipo-vida";
 
 const TRAZO =
@@ -45,6 +45,14 @@ function CorazonUsado({
           size={9}
           strokeWidth={2.5}
           className="absolute -bottom-0.5 -right-0.5 rounded-full bg-superficie p-[1px] text-[#0369a1]"
+        />
+      )}
+      {tipo === "tardanza" && (
+        <Clock
+          aria-hidden
+          size={9}
+          strokeWidth={2.5}
+          className="absolute -bottom-0.5 -right-0.5 rounded-full bg-superficie p-[1px] text-[#6d28d9]"
         />
       )}
     </span>

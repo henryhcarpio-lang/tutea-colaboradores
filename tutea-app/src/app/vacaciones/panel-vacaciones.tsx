@@ -39,6 +39,8 @@ export type Periodo = {
 export type FilaVacaciones = {
   colaborador: Pick<Collaborator, "id" | "nombre" | "foto" | "area">;
   periodo: Periodo | null;
+  /** Por qué no hay período activo, cuando `periodo` es null. */
+  motivoSinPeriodo: "sin_contrato" | "vencido" | null;
 };
 
 function fechaCorta(iso: string): string {
@@ -193,7 +195,9 @@ function Tarjeta({
 
           {!fila.periodo ? (
             <p className="mt-2 text-xs italic text-texto-suave">
-              Falta la fecha de ingreso: se carga en la ficha del colaborador.
+              {fila.motivoSinPeriodo === "vencido"
+                ? "Su contrato ya venció: cargá el contrato nuevo en su ficha para reabrir el cupo."
+                : "Falta el inicio o el fin de contrato: se carga en la ficha del colaborador."}
             </p>
           ) : (
             <>
@@ -204,6 +208,9 @@ function Tarjeta({
                 const excedente = Math.max(0, usados - p.diasAsignados);
                 return (
                   <>
+                    <p className="mt-0.5 text-xs text-texto-suave">
+                      Contrato del {fechaCorta(p.desde)} al {fechaCorta(p.hasta)}
+                    </p>
                     <div className="mt-2">
                       <BarraVacaciones
                         asignados={p.diasAsignados}
@@ -249,7 +256,7 @@ function Tarjeta({
             <div className="flex items-center gap-1 rounded-xl border border-borde p-0.5">
               <button
                 type="button"
-                title="Quitar un día del cupo de este año"
+                title="Quitar un día del cupo de este contrato"
                 disabled={pendiente || fila.periodo.diasAsignados === 0}
                 onClick={() =>
                   iniciar(() => {
@@ -265,7 +272,7 @@ function Tarjeta({
               </span>
               <button
                 type="button"
-                title="Agregar un día al cupo de este año"
+                title="Agregar un día al cupo de este contrato"
                 disabled={pendiente || fila.periodo.diasAsignados >= 60}
                 onClick={() =>
                   iniciar(() => {

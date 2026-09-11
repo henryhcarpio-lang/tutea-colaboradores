@@ -193,7 +193,8 @@ function Tarjeta({
                   onClick={() => setVerDetalle((v) => !v)}
                   className="hover:text-texto hover:underline"
                 >
-                  {verDetalle ? "ocultar" : "ver"} los {usadas} usos
+                  {verDetalle ? "ocultar" : "ver"} {usadas === 1 ? "el" : "los"}{" "}
+                  {usadas} {usadas === 1 ? "uso" : "usos"}
                 </button>
               </>
             )}

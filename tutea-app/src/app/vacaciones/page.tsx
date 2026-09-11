@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { esAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { asegurarPeriodosVacacion } from "@/lib/vacaciones-servidor";
@@ -11,8 +12,8 @@ export const metadata = { title: "Vacaciones" };
 export default async function Vacaciones() {
   const admin = await esAdmin();
 
-  // Igual que Vidas: sin cron, el corte de año se hace perezosamente al
-  // entrar al módulo.
+  // Igual que Vidas: sin cron, el corte se hace perezosamente al entrar al
+  // módulo, comparando el contrato declarado contra el período abierto.
   await asegurarPeriodosVacacion();
 
   const colaboradores = await prisma.collaborator.findMany({
@@ -24,7 +25,8 @@ export default async function Vacaciones() {
       foto: true,
       area: true,
       actualizadoEn: true,
-      fechaIngreso: true,
+      fechaInicioContrato: true,
+      fechaFinContrato: true,
       periodosVacacion: {
         where: { cerradoEn: null },
         take: 1,
@@ -43,11 +45,28 @@ export default async function Vacaciones() {
   });
 
   const filas: FilaVacaciones[] = colaboradores.map(
-    ({ periodosVacacion, fechaIngreso, actualizadoEn, foto, id, ...resto }) => {
-      // Si más adelante se borra la fecha de ingreso, un período que había
-      // quedado abierto no debe seguir mostrándose como vigente: sin fecha de
-      // ingreso no hay de dónde sacar el próximo aniversario.
-      const p = fechaIngreso ? (periodosVacacion[0] ?? null) : null;
+    (
+      {
+        periodosVacacion,
+        fechaInicioContrato,
+        fechaFinContrato,
+        actualizadoEn,
+        foto,
+        id,
+        ...resto
+      },
+    ) => {
+      // Si más adelante se borra alguna de las dos fechas de contrato, un
+      // período que había quedado abierto no debe seguir mostrándose como
+      // vigente: sin las dos fechas no hay de dónde sacar el cupo.
+      const tieneContrato = Boolean(fechaInicioContrato && fechaFinContrato);
+      const p = tieneContrato ? (periodosVacacion[0] ?? null) : null;
+      // Sin período, hay dos motivos bien distintos: no cargaron ninguna
+      // fecha todavía, o sí las cargaron pero el contrato ya venció y nadie
+      // renovó uno nuevo. El mensaje que ve gerencia depende de cuál es.
+      const motivoSinPeriodo = tieneContrato
+        ? ("vencido" as const)
+        : ("sin_contrato" as const);
       return {
         colaborador: { id, foto: urlFoto(id, foto, actualizadoEn), ...resto },
         periodo: p
@@ -65,6 +84,7 @@ export default async function Vacaciones() {
               })),
             }
           : null,
+        motivoSinPeriodo: p ? null : motivoSinPeriodo,
       };
     },
   );
@@ -73,7 +93,15 @@ export default async function Vacaciones() {
     <>
       <EncabezadoSeccion
         titulo="Vacaciones"
-        descripcion="Días de cada colaborador en su año de servicio actual: cuántos tiene, cuántos usó y qué fechas tomó."
+        descripcion="Días de cada colaborador en su contrato actual: cuántos tiene, cuántos usó y qué fechas tomó."
+        acciones={
+          <Link
+            href="/vacaciones/historial"
+            className="rounded-xl border border-borde px-3 py-2 text-sm hover:bg-superficie"
+          >
+            Ver contratos anteriores
+          </Link>
+        }
       />
       <PanelVacaciones
         filas={filas}

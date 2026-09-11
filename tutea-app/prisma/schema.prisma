@@ -25,6 +25,11 @@ enum TipoVida {
   general
   medico
   desastre
+  /// Permiso que la persona repone trabajando otro día: no es un día
+  /// perdido, así que se distingue de un permiso general.
+  recuperable
+  /// Vida usada para no marcar una tardanza como falta.
+  tardanza
 }
 
 /// Estado de un evento del calendario; define su color en la vista mensual.
@@ -59,16 +64,19 @@ model Collaborator {
   /// Cupo por defecto con el que se abre cada mes. El cupo realmente vigente
   /// vive en LifeMonthlyPeriod.
   vidasMensualesDefault  Int      @default(2) @map("vidas_mensuales_default")
-  /// Fecha en la que empezó a trabajar. Define el aniversario que abre cada
-  /// período de vacaciones (§ Vacaciones): sin esta fecha, a esa persona no se
-  /// le puede abrir ningún período. Opcional por lo mismo que la fecha de
-  /// nacimiento: la planilla real no la trae para todos, e inventarla abriría
-  /// un período con una fecha de corte falsa.
-  fechaIngreso           DateTime? @map("fecha_ingreso") @db.Date
-  /// Días hábiles (lunes a sábado) con los que se abre cada año de servicio.
-  /// El equivalente a los 30 días calendario de ley, contados en esta unidad,
-  /// son 26 (se descuentan los ~4 domingos que caen en el medio).
-  diasVacacionesDefault  Int      @default(26) @map("dias_vacaciones_default")
+  /// Inicio y fin del contrato vigente. Tutea recontrata por tramos (6 meses,
+  /// 1 año...), así que esto no es "cuándo entró a la empresa" sino el
+  /// contrato actual: cada vez que se renueva, se actualizan estas dos
+  /// fechas y el contrato anterior queda archivado en VacationPeriod (nunca
+  /// se pierde, es el historial de toda su relación con la empresa).
+  ///
+  /// De acá sale el cupo de vacaciones (§ Vacaciones): 7 días hábiles cada 6
+  /// meses de contrato, 14 cada año, proporcional para otras duraciones.
+  /// Opcionales por lo mismo que la fecha de nacimiento: la planilla real no
+  /// las trae para todos, e inventarlas abriría un período con fechas y un
+  /// cupo falsos.
+  fechaInicioContrato    DateTime? @map("fecha_inicio_contrato") @db.Date
+  fechaFinContrato       DateTime? @map("fecha_fin_contrato") @db.Date
   activo                 Boolean  @default(true)
   creadoEn               DateTime @default(now()) @map("creado_en")
   actualizadoEn          DateTime @updatedAt @map("actualizado_en")
@@ -161,17 +169,22 @@ model LifeUsage {
   @@map("life_usages")
 }
 
-/// Año de servicio de vacaciones. `cerradoEn = null` significa el período en
-/// curso. Arranca en el aniversario de `Collaborator.fechaIngreso` y dura un
-/// año calendario; al cerrarse, el saldo que quedó sin usar se pierde —no se
-/// arrastra al siguiente— así que un período cerrado es una foto definitiva y
-/// nunca se vuelve a tocar.
+/// Un contrato, con el cupo de vacaciones que le correspondió. `cerradoEn =
+/// null` significa el contrato vigente; los cerrados son el historial
+/// completo de todos los contratos que tuvo la persona en la empresa —se
+/// crea uno nuevo cada vez que `Collaborator.fechaInicioContrato`/
+/// `fechaFinContrato` cambian a un rango distinto— y no se recalculan ni se
+/// borran nunca, aunque después cambie la fórmula de días por duración.
+///
+/// Al cerrarse, el saldo que quedó sin usar se pierde: no se arrastra al
+/// contrato siguiente.
 model VacationPeriod {
   id             String    @id @default(uuid())
   colaboradorId  String    @map("colaborador_id")
-  /// Inicio del año de servicio (un aniversario exacto de fechaIngreso).
+  /// Inicio del contrato (= fechaInicioContrato en el momento en que se creó
+  /// este período).
   desde          DateTime  @map("desde") @db.Date
-  /// Fin del año de servicio, exclusivo (el siguiente aniversario).
+  /// Fin del contrato (= fechaFinContrato en ese momento).
   hasta          DateTime  @map("hasta") @db.Date
   diasAsignados  Int       @map("dias_asignados")
   abiertoEn      DateTime  @default(now()) @map("abierto_en")

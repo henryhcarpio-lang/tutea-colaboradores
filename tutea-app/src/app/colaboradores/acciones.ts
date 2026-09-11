@@ -17,9 +17,9 @@ type DatosValidados = {
   nombre: string;
   area: Area;
   fechaNacimiento: Date | null;
-  fechaIngreso: Date | null;
+  fechaInicioContrato: Date | null;
+  fechaFinContrato: Date | null;
   vidasMensualesDefault: number;
-  diasVacacionesDefault: number;
   foto: string | null;
 };
 
@@ -61,27 +61,32 @@ function validar(datos: FormData): DatosValidados | string {
     return "El cupo de vidas tiene que ser un número entero entre 0 y 10.";
   }
 
-  // Igual que la fecha de nacimiento: opcional, porque no todos la tienen
-  // cargada todavía, y sin ella no se le puede abrir ningún año de servicio.
-  const ingresoTexto = String(datos.get("fechaIngreso") ?? "").trim();
-  let fechaIngreso: Date | null = null;
-  if (ingresoTexto) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(ingresoTexto)) {
-      return "La fecha de ingreso no es válida.";
+  // Igual que la fecha de nacimiento: opcionales, porque no todos las tienen
+  // cargadas todavía, y sin las dos no se le puede abrir ningún período de
+  // vacaciones (§ Vacaciones — el cupo sale de la duración del contrato).
+  function fechaContrato(campo: string, etiqueta: string): Date | null | string {
+    const texto = String(datos.get(campo) ?? "").trim();
+    if (!texto) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(texto)) return `La fecha de ${etiqueta} no es válida.`;
+    const fecha = new Date(`${texto}T00:00:00.000Z`);
+    if (Number.isNaN(fecha.getTime())) return `La fecha de ${etiqueta} no es válida.`;
+    if (fecha.getUTCFullYear() < 1990 || fecha.getUTCFullYear() > 2100) {
+      return `Revisá el año de ${etiqueta}.`;
     }
-    fechaIngreso = new Date(`${ingresoTexto}T00:00:00.000Z`);
-    if (Number.isNaN(fechaIngreso.getTime())) return "La fecha de ingreso no es válida.";
-    if (fechaIngreso > hoyEnLima()) {
-      return "La fecha de ingreso no puede estar en el futuro.";
-    }
-    if (fechaIngreso.getUTCFullYear() < 1990) {
-      return "Revisá el año de ingreso.";
-    }
+    return fecha;
   }
 
-  const diasVacaciones = Number(datos.get("diasVacacionesDefault"));
-  if (!Number.isInteger(diasVacaciones) || diasVacaciones < 0 || diasVacaciones > 60) {
-    return "Los días de vacaciones tienen que ser un número entero entre 0 y 60.";
+  const fechaInicioContrato = fechaContrato("fechaInicioContrato", "inicio de contrato");
+  if (typeof fechaInicioContrato === "string") return fechaInicioContrato;
+
+  const fechaFinContrato = fechaContrato("fechaFinContrato", "fin de contrato");
+  if (typeof fechaFinContrato === "string") return fechaFinContrato;
+
+  if (fechaInicioContrato && fechaFinContrato && fechaFinContrato < fechaInicioContrato) {
+    return "El fin de contrato no puede ser anterior al inicio.";
+  }
+  if ((fechaInicioContrato === null) !== (fechaFinContrato === null)) {
+    return "Cargá el inicio y el fin de contrato juntos, o dejá los dos vacíos.";
   }
 
   const fotoCruda = String(datos.get("foto") ?? "").trim();
@@ -101,9 +106,9 @@ function validar(datos: FormData): DatosValidados | string {
     nombre,
     area: area as Area,
     fechaNacimiento,
-    fechaIngreso,
+    fechaInicioContrato,
+    fechaFinContrato,
     vidasMensualesDefault: vidas,
-    diasVacacionesDefault: diasVacaciones,
     foto,
   };
 }
@@ -238,14 +243,6 @@ export async function editarColaborador(
     await tx.lifeMonthlyPeriod.updateMany({
       where: { colaboradorId: id, cerradoEn: null },
       data: { vidasAsignadas: validado.vidasMensualesDefault },
-    });
-
-    // Mismo criterio con el año de vacaciones en curso: si gerencia le ajusta
-    // el cupo a alguien, no tiene sentido que el cambio recién se vea en el
-    // aniversario del año que viene.
-    await tx.vacationPeriod.updateMany({
-      where: { colaboradorId: id, cerradoEn: null },
-      data: { diasAsignados: validado.diasVacacionesDefault },
     });
   });
 

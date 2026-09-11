@@ -7,6 +7,7 @@ import { redimensionarACuadrado } from "@/lib/imagen";
 import { Avatar } from "@/components/avatar";
 import { EditorBloques } from "@/app/horarios/editor-bloques";
 import { duracionLegible, totalSemanal, type BloqueSimple } from "@/lib/horarios";
+import { diasPorDuracionDeContrato } from "@/lib/vacaciones";
 import {
   crearColaborador,
   editarColaborador,
@@ -44,11 +45,11 @@ export function FormularioColaborador({
   const [nacimiento, setNacimiento] = useState(
     colaborador?.fechaNacimiento ? aISO(colaborador.fechaNacimiento) : "",
   );
-  const [ingreso, setIngreso] = useState(
-    colaborador?.fechaIngreso ? aISO(colaborador.fechaIngreso) : "",
+  const [inicioContrato, setInicioContrato] = useState(
+    colaborador?.fechaInicioContrato ? aISO(colaborador.fechaInicioContrato) : "",
   );
-  const [diasVacaciones, setDiasVacaciones] = useState(
-    String(colaborador?.diasVacacionesDefault ?? 26),
+  const [finContrato, setFinContrato] = useState(
+    colaborador?.fechaFinContrato ? aISO(colaborador.fechaFinContrato) : "",
   );
   const [quitarFoto, setQuitarFoto] = useState(false);
   // Solo al crear: el alta permite dejar la semana cargada de una vez, sin
@@ -210,43 +211,56 @@ export function FormularioColaborador({
           </div>
 
           <div>
-            <label htmlFor="ingreso" className="text-sm font-medium">
-              Fecha de ingreso{" "}
+            <label htmlFor="inicioContrato" className="text-sm font-medium">
+              Inicio de contrato{" "}
               <span className="font-normal text-texto-suave">(opcional)</span>
             </label>
             <input
-              id="ingreso"
-              name="fechaIngreso"
+              id="inicioContrato"
+              name="fechaInicioContrato"
               type="date"
-              value={ingreso}
-              onChange={(e) => setIngreso(e.target.value)}
+              value={inicioContrato}
+              onChange={(e) => setInicioContrato(e.target.value)}
               className={CLASE_CAMPO}
             />
-            <p className="mt-1.5 text-xs text-texto-suave">
-              Define el aniversario que abre cada año de vacaciones. Sin esta
-              fecha, la persona no aparece con saldo en el módulo Vacaciones.
-            </p>
           </div>
 
           <div>
-            <label htmlFor="diasVacaciones" className="text-sm font-medium">
-              Días de vacaciones por año
+            <label htmlFor="finContrato" className="text-sm font-medium">
+              Fin de contrato{" "}
+              <span className="font-normal text-texto-suave">(opcional)</span>
             </label>
             <input
-              id="diasVacaciones"
-              name="diasVacacionesDefault"
-              type="number"
-              min={0}
-              max={60}
-              value={diasVacaciones}
-              onChange={(e) => setDiasVacaciones(e.target.value)}
+              id="finContrato"
+              name="fechaFinContrato"
+              type="date"
+              min={inicioContrato || undefined}
+              value={finContrato}
+              onChange={(e) => setFinContrato(e.target.value)}
               className={CLASE_CAMPO}
             />
-            <p className="mt-1.5 text-xs text-texto-suave">
-              Días hábiles (lunes a sábado) con los que abre cada año de
-              servicio. 26 equivale a los 30 días calendario de ley.
-            </p>
           </div>
+
+          <p className="sm:col-span-2 -mt-2 text-xs text-texto-suave">
+            {inicioContrato && finContrato ? (
+              <>
+                Este contrato le da{" "}
+                <span className="font-semibold text-texto">
+                  {diasPorDuracionDeContrato(
+                    new Date(`${inicioContrato}T00:00:00.000Z`),
+                    new Date(`${finContrato}T00:00:00.000Z`),
+                  )}{" "}
+                  días de vacaciones
+                </span>{" "}
+                (7 cada 6 meses, 14 cada año). Al renovar el contrato con
+                fechas nuevas, este período queda archivado en el historial de
+                Vacaciones con lo que usó, y se abre uno nuevo con el cupo que
+                corresponda.
+              </>
+            ) : (
+              "Sin las dos fechas, la persona no aparece con saldo en el módulo Vacaciones: el cupo sale de la duración del contrato (7 días cada 6 meses, 14 cada año)."
+            )}
+          </p>
         </div>
       </div>
 
