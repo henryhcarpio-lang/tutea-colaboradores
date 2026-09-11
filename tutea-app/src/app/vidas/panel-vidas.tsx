@@ -56,7 +56,7 @@ function FormularioUso({
   const [estado, accion, pendiente] = useActionState(usarVida, ESTADO_INICIAL);
   const [fecha, setFecha] = useState(hoy);
   const [motivo, setMotivo] = useState("");
-  const [tipo, setTipo] = useState<TipoVida>("general");
+  const [tipo, setTipo] = useState<TipoVida>("recuperable");
 
   useEffect(() => {
     if (estado.ok) onCerrar();

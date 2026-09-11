@@ -24,7 +24,7 @@ export async function usarVida(
   const periodoId = String(datos.get("periodoId") ?? "");
   const motivo = String(datos.get("motivo") ?? "").trim();
   const fechaTexto = String(datos.get("fecha") ?? "");
-  const tipoTexto = String(datos.get("tipo") ?? "general");
+  const tipoTexto = String(datos.get("tipo") ?? "recuperable");
 
   if (!periodoId) return { error: "Falta el período." };
   if (motivo.length < 3) return { error: "Escribí el motivo del permiso." };

@@ -121,13 +121,21 @@ vez el sábado a las 9, las fotos quedaban prácticamente pegadas.
 
 ## Tipo de permiso en Vidas
 
-`LifeUsage.tipo` (`general` / `medico` / `desastre` / `recuperable` /
-`tardanza`) pinta el corazón gastado según el motivo: celeste con curita para
-descanso médico, verde para desastre natural, ámbar para un permiso
-recuperable (se repone trabajando otro día, no es un día perdido de verdad) y
-violeta con reloj para omitir una tardanza. Las cinco reducen el cupo por
-igual — la etiqueta es solo para que gerencia vea de un vistazo por qué se
-usó cada una. Vive en `src/lib/tipo-vida.ts`, junto a los colores.
+`LifeUsage.tipo` pinta el corazón gastado según el motivo: celeste con curita
+para descanso médico, verde para desastre natural, y gris para los dos
+motivos corrientes —permiso recuperable (se repone trabajando otro día) y
+omitir una tardanza—, que se distinguen entre sí por el reloj que lleva
+encima el de tardanza. Todos reducen el cupo por igual: la etiqueta es solo
+para que gerencia vea de un vistazo por qué se usó cada uno.
+
+`general` sigue existiendo en el enum pero **ya no se puede elegir**
+(`LISTA_TIPOS_VIDA` no lo incluye): está solo para que los permisos viejos
+registrados con ese motivo se sigan mostrando bien. Un dato ya guardado no se
+reescribe, así que el tipo no se borra de la base.
+
+Un corazón que pasa el cupo se pinta rojo oscuro **solo si su motivo es de
+los grises**; médico y desastre conservan el suyo, porque ese color dice algo
+que el "N de más" de al lado no dice. Todo vive en `src/lib/tipo-vida.ts`.
 
 ## Vacaciones
 

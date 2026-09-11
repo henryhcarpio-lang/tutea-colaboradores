@@ -6,7 +6,15 @@ import { ListaContratos, type ContratoColaborador } from "./lista-contratos";
 
 export const metadata = { title: "Historial de vacaciones" };
 
-export default async function HistorialVacaciones() {
+export default async function HistorialVacaciones({
+  searchParams,
+}: {
+  searchParams: Promise<{ colaborador?: string }>;
+}) {
+  // La ficha del colaborador enlaza acá con su id, para caer directo en su
+  // historial en vez de tener que buscarlo en el selector.
+  const { colaborador: colaboradorInicial } = await searchParams;
+
   const colaboradores = await prisma.collaborator.findMany({
     // A diferencia de la vista actual, acá se listan también los inactivos:
     // el historial de contratos de alguien que ya no trabaja en Tutea no
@@ -79,7 +87,10 @@ export default async function HistorialVacaciones() {
           detalle="Un contrato se archiva acá solo cuando se carga uno nuevo con fechas distintas en la ficha del colaborador."
         />
       ) : (
-        <ListaContratos historiales={historiales} />
+        <ListaContratos
+          historiales={historiales}
+          colaboradorInicial={colaboradorInicial}
+        />
       )}
     </>
   );

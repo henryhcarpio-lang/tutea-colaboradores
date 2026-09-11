@@ -93,12 +93,18 @@ function TarjetaContrato({ contrato }: { contrato: Contrato }) {
 
 export function ListaContratos({
   historiales,
+  colaboradorInicial,
 }: {
   historiales: ContratoColaborador[];
+  /** Id que llega por la URL desde la ficha del colaborador, si vino de ahí. */
+  colaboradorInicial?: string;
 }) {
   const [colaboradorId, setColaboradorId] = useState<string>(
-    historiales.find((h) => h.contratos.length > 0)?.colaborador.id ??
-      historiales[0]?.colaborador.id ??
+    (colaboradorInicial &&
+      historiales.find((h) => h.colaborador.id === colaboradorInicial)
+        ?.colaborador.id) ||
+      historiales.find((h) => h.contratos.length > 0)?.colaborador.id ||
+      historiales[0]?.colaborador.id ||
       "",
   );
 

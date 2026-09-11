@@ -1,6 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { History } from "lucide-react";
 import type { Area, Collaborator } from "@prisma/client";
 import { AREAS, LISTA_AREAS } from "@/lib/areas";
 import { redimensionarACuadrado } from "@/lib/imagen";
@@ -23,11 +25,20 @@ function aISO(fecha: Date): string {
   return new Date(fecha).toISOString().slice(0, 10);
 }
 
+/**
+ * El colaborador más el cupo de vacaciones de su contrato vigente, que no
+ * vive en su fila sino en `VacationPeriod`. Se trae junto para poder
+ * editarlo acá mismo, sin obligar a pasar por la pantalla de Vacaciones.
+ */
+export type ColaboradorConCupo = Collaborator & {
+  diasVacacionesActuales: number | null;
+};
+
 export function FormularioColaborador({
   colaborador,
   onCerrar,
 }: {
-  colaborador?: Collaborator;
+  colaborador?: ColaboradorConCupo;
   onCerrar: () => void;
 }) {
   const editando = Boolean(colaborador);
@@ -51,6 +62,13 @@ export function FormularioColaborador({
   const [finContrato, setFinContrato] = useState(
     colaborador?.fechaFinContrato ? aISO(colaborador.fechaFinContrato) : "",
   );
+  // `null` = sigue el cálculo automático por duración del contrato; un string
+  // = gerencia lo ajustó a mano y ese número manda, aunque cambien las fechas.
+  const [diasVacacionesManual, setDiasVacacionesManual] = useState<string | null>(
+    colaborador?.diasVacacionesActuales != null
+      ? String(colaborador.diasVacacionesActuales)
+      : null,
+  );
   const [quitarFoto, setQuitarFoto] = useState(false);
   // Solo al crear: el alta permite dejar la semana cargada de una vez, sin
   // pasar después por la cuadrícula.
@@ -58,6 +76,17 @@ export function FormularioColaborador({
   const [errorHorario, setErrorHorario] = useState<string | null>(null);
   const [errorFoto, setErrorFoto] = useState<string | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
+
+  // Mientras nadie lo toque, el cupo sigue al contrato: cambiar las fechas
+  // recalcula el número solo. En cuanto se edita a mano, ese valor manda.
+  const diasCalculados =
+    inicioContrato && finContrato
+      ? diasPorDuracionDeContrato(
+          new Date(`${inicioContrato}T00:00:00.000Z`),
+          new Date(`${finContrato}T00:00:00.000Z`),
+        )
+      : 0;
+  const diasVacaciones = diasVacacionesManual ?? String(diasCalculados);
 
   useEffect(() => {
     if (estado.ok) onCerrar();
@@ -241,25 +270,43 @@ export function FormularioColaborador({
             />
           </div>
 
+          <div>
+            <label htmlFor="diasVacaciones" className="text-sm font-medium">
+              Días de vacaciones
+            </label>
+            <input
+              id="diasVacaciones"
+              name="diasVacaciones"
+              type="number"
+              min={0}
+              max={60}
+              value={diasVacaciones}
+              onChange={(e) => setDiasVacacionesManual(e.target.value)}
+              className={CLASE_CAMPO}
+            />
+            <p className="mt-1.5 text-xs text-texto-suave">
+              {Number(diasVacaciones) === diasCalculados
+                ? "Calculado por la duración del contrato: 7 días cada 6 meses, 14 cada año. Se puede cambiar a mano."
+                : `Ajustado a mano: por la duración del contrato le corresponderían ${diasCalculados}.`}
+            </p>
+          </div>
+
+          {editando && (
+            <div className="flex items-end">
+              <Link
+                href={`/vacaciones/historial?colaborador=${colaborador!.id}`}
+                className="flex items-center gap-1.5 rounded-xl border border-borde px-3 py-2.5 text-sm hover:bg-fondo"
+              >
+                <History aria-hidden size={15} strokeWidth={1.75} />
+                Ver contratos anteriores
+              </Link>
+            </div>
+          )}
+
           <p className="sm:col-span-2 -mt-2 text-xs text-texto-suave">
-            {inicioContrato && finContrato ? (
-              <>
-                Este contrato le da{" "}
-                <span className="font-semibold text-texto">
-                  {diasPorDuracionDeContrato(
-                    new Date(`${inicioContrato}T00:00:00.000Z`),
-                    new Date(`${finContrato}T00:00:00.000Z`),
-                  )}{" "}
-                  días de vacaciones
-                </span>{" "}
-                (7 cada 6 meses, 14 cada año). Al renovar el contrato con
-                fechas nuevas, este período queda archivado en el historial de
-                Vacaciones con lo que usó, y se abre uno nuevo con el cupo que
-                corresponda.
-              </>
-            ) : (
-              "Sin las dos fechas, la persona no aparece con saldo en el módulo Vacaciones: el cupo sale de la duración del contrato (7 días cada 6 meses, 14 cada año)."
-            )}
+            {inicioContrato && finContrato
+              ? "Al renovar el contrato con fechas nuevas, el período actual queda archivado en el historial de Vacaciones con lo que usó, y se abre uno nuevo."
+              : "Sin las dos fechas, la persona no aparece con saldo en el módulo Vacaciones."}
           </p>
         </div>
       </div>

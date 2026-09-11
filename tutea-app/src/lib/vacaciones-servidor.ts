@@ -4,88 +4,103 @@ import { hoyEnLima } from "./fecha";
 import { diasPorDuracionDeContrato } from "./vacaciones";
 
 /**
- * Sincroniza los períodos de vacaciones con el contrato declarado de cada
- * colaborador activo (`fechaInicioContrato`/`fechaFinContrato`).
+ * Pone el período de vacaciones de UNA persona al día con el contrato que
+ * declara su ficha. Es el único lugar donde se abren y se cierran períodos:
+ * lo llaman tanto el alta/edición de un colaborador (para que el cambio se
+ * vea al instante) como el barrido perezoso de abajo.
  *
- * Tutea recontrata por tramos: cada vez que alguien renueva, gerencia carga
- * las fechas del contrato nuevo en la ficha del colaborador. Acá es donde eso
- * se traduce en períodos de vacaciones:
- *
- * - Sin período abierto todavía → se crea uno para el contrato vigente.
- * - El contrato declarado cambió (fechas distintas a las del período
- *   abierto) → el período viejo se archiva tal como quedó —con todo lo que
- *   usó, es el historial de ese tramo— y se abre uno nuevo para el contrato
- *   nuevo. El cupo sale de `diasPorDuracionDeContrato`, no de un número fijo
- *   por persona: dos contratos de duración distinta dan cupos distintos.
- * - El contrato declarado ya venció (su fecha de fin quedó en el pasado) y
- *   nadie cargó uno nuevo todavía → el período se cierra igual, sin abrir
- *   otro: no hay vacaciones que ofrecer mientras no haya un contrato vigente.
- *
- * Sin cron, igual que `asegurarPeriodos()` de Vidas: corre perezosamente al
- * entrar al módulo, y es idempotente.
+ * - Mismo contrato que el período abierto → solo se corrige el cupo, por si
+ *   gerencia lo ajustó a mano en ese mismo guardado.
+ * - Contrato distinto (renovación) → el período viejo se archiva tal como
+ *   quedó —con todo lo que usó, es el historial de ese tramo— y se abre uno
+ *   nuevo con el cupo que corresponda.
+ * - Contrato vencido, o ficha sin las dos fechas → se archiva el que había y
+ *   no se abre reemplazo: no hay vacaciones que ofrecer sin contrato vigente.
  */
-export async function asegurarPeriodosVacacion(): Promise<void> {
+export async function sincronizarPeriodoContrato(
+  colaboradorId: string,
+  fechaInicioContrato: Date | null,
+  fechaFinContrato: Date | null,
+  diasAsignados: number,
+): Promise<void> {
   const hoy = hoyEnLima();
 
-  const activos = await prisma.collaborator.findMany({
-    where: {
-      activo: true,
-      fechaInicioContrato: { not: null },
-      fechaFinContrato: { not: null },
-    },
-    select: { id: true, fechaInicioContrato: true, fechaFinContrato: true },
+  const vigente = await prisma.vacationPeriod.findFirst({
+    where: { colaboradorId, cerradoEn: null },
+    select: { id: true, desde: true, hasta: true, diasAsignados: true },
   });
 
-  const abiertos = await prisma.vacationPeriod.findMany({
-    where: { cerradoEn: null },
-    select: { id: true, colaboradorId: true, desde: true, hasta: true },
-  });
-  const abiertoDe = new Map(abiertos.map((p) => [p.colaboradorId, p]));
+  const hayContrato = Boolean(fechaInicioContrato && fechaFinContrato);
 
-  const aCerrar: string[] = [];
-  const aCrear: { colaboradorId: string; desde: Date; hasta: Date; diasAsignados: number }[] = [];
-
-  for (const c of activos) {
-    const desde = c.fechaInicioContrato!;
-    const hasta = c.fechaFinContrato!;
-    const vigente = abiertoDe.get(c.id);
-
-    const mismoContrato =
-      vigente &&
-      vigente.desde.getTime() === desde.getTime() &&
-      vigente.hasta.getTime() === hasta.getTime();
-    if (mismoContrato) continue;
-
-    if (vigente) aCerrar.push(vigente.id);
-
-    // Si el contrato declarado ya venció y nadie cargó uno nuevo, no se abre
-    // reemplazo: solo se archiva el que había.
-    if (hasta < hoy) continue;
-
-    aCrear.push({
-      colaboradorId: c.id,
-      desde,
-      hasta,
-      diasAsignados: diasPorDuracionDeContrato(desde, hasta),
-    });
-  }
-
-  // Cierra también el período de quien tenía uno abierto pero ya no declara
-  // ambas fechas de contrato (se las borraron, o quedó inactivo).
-  const idsConContratoVigente = new Set(activos.map((c) => c.id));
-  for (const p of abiertos) {
-    if (!idsConContratoVigente.has(p.colaboradorId) && !aCerrar.includes(p.id)) {
-      aCerrar.push(p.id);
+  if (
+    vigente &&
+    hayContrato &&
+    vigente.desde.getTime() === fechaInicioContrato!.getTime() &&
+    vigente.hasta.getTime() === fechaFinContrato!.getTime()
+  ) {
+    if (vigente.diasAsignados !== diasAsignados) {
+      await prisma.vacationPeriod.update({
+        where: { id: vigente.id },
+        data: { diasAsignados },
+      });
     }
+    return;
   }
 
-  if (aCerrar.length === 0 && aCrear.length === 0) return;
+  const abrirNuevo = hayContrato && fechaFinContrato! >= hoy;
+  if (!vigente && !abrirNuevo) return;
 
-  await prisma.$transaction([
-    prisma.vacationPeriod.updateMany({
-      where: { id: { in: aCerrar } },
-      data: { cerradoEn: new Date() },
-    }),
-    prisma.vacationPeriod.createMany({ data: aCrear }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+    if (vigente) {
+      await tx.vacationPeriod.update({
+        where: { id: vigente.id },
+        data: { cerradoEn: new Date() },
+      });
+    }
+    if (abrirNuevo) {
+      await tx.vacationPeriod.create({
+        data: {
+          colaboradorId,
+          desde: fechaInicioContrato!,
+          hasta: fechaFinContrato!,
+          diasAsignados,
+        },
+      });
+    }
+  });
+}
+
+/**
+ * Barrido de todos los colaboradores. El alta y la edición ya sincronizan a
+ * la persona que se tocó, así que esto existe para lo que no pasa por una
+ * acción: que el contrato de alguien venza con el correr de los días, o que
+ * a alguien lo den de baja. Sin cron, igual que `asegurarPeriodos()` de
+ * Vidas: corre al entrar al módulo, y es idempotente.
+ *
+ * El cupo con el que abriría un período nuevo sale de la duración del
+ * contrato; un cupo ajustado a mano no se pisa, porque un contrato que ya
+ * tiene su período abierto no se vuelve a crear.
+ */
+export async function asegurarPeriodosVacacion(): Promise<void> {
+  const colaboradores = await prisma.collaborator.findMany({
+    select: {
+      id: true,
+      activo: true,
+      fechaInicioContrato: true,
+      fechaFinContrato: true,
+    },
+  });
+
+  for (const c of colaboradores) {
+    // A quien está de baja se le cierra el período aunque su ficha siga
+    // teniendo fechas de contrato.
+    const inicio = c.activo ? c.fechaInicioContrato : null;
+    const fin = c.activo ? c.fechaFinContrato : null;
+    await sincronizarPeriodoContrato(
+      c.id,
+      inicio,
+      fin,
+      inicio && fin ? diasPorDuracionDeContrato(inicio, fin) : 0,
+    );
+  }
 }

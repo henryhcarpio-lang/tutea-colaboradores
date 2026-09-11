@@ -7,13 +7,15 @@ import { exigirAdmin } from "@/lib/auth";
 import { hoyEnLima } from "@/lib/fecha";
 import { LISTA_AREAS } from "@/lib/areas";
 import { CLAVES_DIA, DIAS, validarDia, type BloqueSimple } from "@/lib/horarios";
+import { sincronizarPeriodoContrato } from "@/lib/vacaciones-servidor";
 
 export type EstadoColaborador = { error?: string; ok?: boolean };
 
 const LIMITE_FOTO_BYTES = 300 * 1024;
 const FORMATOS_FOTO = ["image/jpeg", "image/png", "image/webp"];
 
-type DatosValidados = {
+/** Los campos que van a la fila del colaborador, tal cual. */
+type CamposColaborador = {
   nombre: string;
   area: Area;
   fechaNacimiento: Date | null;
@@ -22,6 +24,12 @@ type DatosValidados = {
   vidasMensualesDefault: number;
   foto: string | null;
 };
+
+/**
+ * `diasVacaciones` va aparte porque no es una columna del colaborador: vive
+ * en el período de vacaciones de su contrato vigente (`VacationPeriod`).
+ */
+type DatosValidados = CamposColaborador & { diasVacaciones: number };
 
 /**
  * Valida en el servidor, no solo en el formulario: las acciones son un punto
@@ -89,6 +97,13 @@ function validar(datos: FormData): DatosValidados | string {
     return "Cargá el inicio y el fin de contrato juntos, o dejá los dos vacíos.";
   }
 
+  // El cupo de vacaciones se propone por la duración del contrato, pero
+  // gerencia puede pisarlo a mano desde la ficha; acá llega ya resuelto.
+  const diasVacaciones = Number(datos.get("diasVacaciones"));
+  if (!Number.isInteger(diasVacaciones) || diasVacaciones < 0 || diasVacaciones > 60) {
+    return "Los días de vacaciones tienen que ser un número entero entre 0 y 60.";
+  }
+
   const fotoCruda = String(datos.get("foto") ?? "").trim();
   let foto: string | null = null;
   if (fotoCruda) {
@@ -110,6 +125,7 @@ function validar(datos: FormData): DatosValidados | string {
     fechaFinContrato,
     vidasMensualesDefault: vidas,
     foto,
+    diasVacaciones,
   };
 }
 
@@ -174,11 +190,13 @@ export async function crearColaborador(
   const bloques = validarBloques(String(datos.get("bloques") ?? ""));
   if (typeof bloques === "string") return { error: bloques };
 
+  const { diasVacaciones, ...campos } = validado;
+
   // Persona y horario se guardan juntos: si algo falla, no queda un
   // colaborador a medio crear.
-  await prisma.$transaction(async (tx) => {
-    const creado = await tx.collaborator.create({ data: validado });
-    if (bloques.length === 0) return;
+  const creadoId = await prisma.$transaction(async (tx) => {
+    const creado = await tx.collaborator.create({ data: campos });
+    if (bloques.length === 0) return creado.id;
 
     await tx.scheduleBlock.createMany({
       data: bloques.map((b) => ({
@@ -206,7 +224,17 @@ export async function crearColaborador(
         ),
       },
     });
+    return creado.id;
   });
+
+  // Fuera de la transacción: el período de vacaciones no debería impedir el
+  // alta de la persona si algo sale mal.
+  await sincronizarPeriodoContrato(
+    creadoId,
+    campos.fechaInicioContrato,
+    campos.fechaFinContrato,
+    diasVacaciones,
+  );
 
   refrescar();
   return { ok: true };
@@ -227,12 +255,13 @@ export async function editarColaborador(
   // Campo vacío al editar = "no cambiar la foto", no "borrar la foto".
   // Para sacarla hay un botón propio que manda quitarFoto.
   const quitarFoto = datos.get("quitarFoto") === "1";
-  const { foto, ...resto } = validado;
+  const { diasVacaciones, ...campos } = validado;
+  const { foto, ...resto } = campos;
 
   await prisma.$transaction(async (tx) => {
     await tx.collaborator.update({
       where: { id },
-      data: quitarFoto ? { ...resto, foto: null } : foto ? validado : resto,
+      data: quitarFoto ? { ...resto, foto: null } : foto ? campos : resto,
     });
 
     // El cupo por defecto es la plantilla para meses futuros; sin esto, el
@@ -245,6 +274,16 @@ export async function editarColaborador(
       data: { vidasAsignadas: validado.vidasMensualesDefault },
     });
   });
+
+  // Mismo criterio con las vacaciones: si cambió el contrato, se archiva el
+  // período viejo y se abre el nuevo en el acto, sin esperar a que alguien
+  // entre a la pantalla de Vacaciones.
+  await sincronizarPeriodoContrato(
+    id,
+    campos.fechaInicioContrato,
+    campos.fechaFinContrato,
+    diasVacaciones,
+  );
 
   refrescar();
   return { ok: true };

@@ -2,11 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { Check, Pencil, RotateCcw, Trash2, UserPlus, X } from "lucide-react";
-import type { Collaborator } from "@prisma/client";
+
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
-import { FormularioColaborador } from "./formulario-colaborador";
+import {
+  FormularioColaborador,
+  type ColaboradorConCupo,
+} from "./formulario-colaborador";
 import { desactivarColaborador, reactivarColaborador } from "./acciones";
 
 function fechaLegible(fecha: Date): string {
@@ -21,7 +24,7 @@ function fechaLegible(fecha: Date): string {
   });
 }
 
-function Fila({ colaborador }: { colaborador: Collaborator }) {
+function Fila({ colaborador }: { colaborador: ColaboradorConCupo }) {
   const [editando, setEditando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [pendiente, iniciar] = useTransition();
@@ -140,8 +143,8 @@ export function ListaColaboradores({
   activos,
   inactivos,
 }: {
-  activos: Collaborator[];
-  inactivos: Collaborator[];
+  activos: ColaboradorConCupo[];
+  inactivos: ColaboradorConCupo[];
 }) {
   const [creando, setCreando] = useState(false);
   const [verInactivos, setVerInactivos] = useState(false);

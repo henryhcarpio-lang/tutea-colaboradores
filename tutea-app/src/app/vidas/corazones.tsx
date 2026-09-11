@@ -2,7 +2,7 @@
 
 import type { TipoVida } from "@prisma/client";
 import { Bandage, Clock } from "lucide-react";
-import { TIPOS_VIDA } from "@/lib/tipo-vida";
+import { GRIS_NEUTRO, TIPOS_VIDA } from "@/lib/tipo-vida";
 
 const TRAZO =
   "M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z";
@@ -17,7 +17,11 @@ function CorazonUsado({
   excedida: boolean;
   animar: boolean;
 }) {
-  const color = excedida && tipo === "general" ? "#7f1d1d" : TIPOS_VIDA[tipo].color;
+  // Un corazón de más se pinta rojo oscuro solo si su motivo es de los
+  // neutros (gris): médico y desastre conservan su color, que dice algo que
+  // el "N de más" de al lado no dice.
+  const propio = TIPOS_VIDA[tipo].color;
+  const color = excedida && propio === GRIS_NEUTRO ? "#7f1d1d" : propio;
   const titulo = `Vida usada · ${TIPOS_VIDA[tipo].etiqueta}${excedida ? " (excedida)" : ""}`;
 
   return (

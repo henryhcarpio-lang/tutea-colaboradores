@@ -10,9 +10,23 @@ export default async function Colaboradores() {
   // Única sección con acceso restringido: el resto del sistema es público.
   if (!(await esAdmin())) redirect("/ingresar");
 
-  const todos = await prisma.collaborator.findMany({
+  const filas = await prisma.collaborator.findMany({
     orderBy: { nombre: "asc" },
+    include: {
+      // El cupo de vacaciones vive en el período del contrato vigente, no en
+      // la fila del colaborador: se trae para poder editarlo desde su ficha.
+      periodosVacacion: {
+        where: { cerradoEn: null },
+        take: 1,
+        select: { diasAsignados: true },
+      },
+    },
   });
+
+  const todos = filas.map(({ periodosVacacion, ...colaborador }) => ({
+    ...colaborador,
+    diasVacacionesActuales: periodosVacacion[0]?.diasAsignados ?? null,
+  }));
 
   return (
     <>
