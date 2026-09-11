@@ -25,7 +25,7 @@ export default async function Horarios() {
     },
   });
 
-  // Acá es donde más importa: la misma persona aparece una vez por cada
+  // Aquí es donde más importa: la misma persona aparece una vez por cada
   // bloque de su semana, así que su foto en base64 se repetía tantas veces
   // como bloques tuviera. Con una URL corta en vez del data URL inline, el
   // peso de la página deja de multiplicarse por la cantidad de bloques.
@@ -54,7 +54,7 @@ export default async function Horarios() {
       {filas.length === 0 ? (
         <EstadoVacio
           titulo="Todavía no hay colaboradores"
-          detalle="La cuadrícula aparecerá acá una vez que existan personas cargadas en el equipo."
+          detalle="La cuadrícula aparecerá aquí una vez que existan personas cargadas en el equipo."
         />
       ) : (
         <Cuadricula filas={filas} admin={admin} />

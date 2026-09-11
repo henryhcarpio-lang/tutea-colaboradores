@@ -19,7 +19,7 @@ const SALUDOS = [
   (n: string) => `¡Feliz cumpleaños, ${n}! Gracias por formar parte de Tutea.`,
   (n: string) => `¡${n}, feliz cumpleaños! Gracias por ser parte de Tutea.`,
   (n: string) => `¡Hoy es tu día, ${n}! Feliz cumpleaños de parte de todo Tutea.`,
-  (n: string) => `¡Feliz vuelta al sol, ${n}! Tutea no sería lo mismo sin vos.`,
+  (n: string) => `¡Feliz vuelta al sol, ${n}! Tutea no sería lo mismo sin ti.`,
   (n: string) => `¡Feliz cumpleaños, ${n}! Que este año te traiga cosas lindas.`,
 ];
 

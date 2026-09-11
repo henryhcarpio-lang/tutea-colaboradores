@@ -28,7 +28,7 @@ function aISO(fecha: Date): string {
 /**
  * El colaborador más el cupo de vacaciones de su contrato vigente, que no
  * vive en su fila sino en `VacationPeriod`. Se trae junto para poder
- * editarlo acá mismo, sin obligar a pasar por la pantalla de Vacaciones.
+ * editarlo aquí mismo, sin obligar a pasar por la pantalla de Vacaciones.
  */
 export type ColaboradorConCupo = Collaborator & {
   diasVacacionesActuales: number | null;
@@ -96,14 +96,14 @@ export function FormularioColaborador({
     if (!archivo) return;
     setErrorFoto(null);
     if (!archivo.type.startsWith("image/")) {
-      setErrorFoto("Elegí un archivo de imagen.");
+      setErrorFoto("Elige un archivo de imagen.");
       return;
     }
     try {
       setFoto(await redimensionarACuadrado(archivo));
       setQuitarFoto(false);
     } catch {
-      setErrorFoto("No se pudo leer esa imagen. Probá con otra.");
+      setErrorFoto("No se pudo leer esa imagen. Prueba con otra.");
     }
   }
 
@@ -235,7 +235,7 @@ export function FormularioColaborador({
             />
             <p className="mt-1.5 text-xs text-texto-suave">
               Día, mes y año. El día se usa para avisar del cumpleaños. Si
-              todavía no la sabés, se puede dejar vacía y completarla después.
+              todavía no la sabes, se puede dejar vacía y completarla después.
             </p>
           </div>
 

@@ -349,7 +349,7 @@ export function VistaPorHora({
     return (
       <EstadoVacio
         titulo="Todavía no hay horarios cargados"
-        detalle="Asigná el horario de alguien y acá vas a ver quién trabaja en cada franja."
+        detalle="Asigna el horario de alguien y aquí vas a ver quién trabaja en cada franja."
       />
     );
   }

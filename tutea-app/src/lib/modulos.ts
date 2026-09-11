@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 
 /**
- * Los módulos del sistema, con su ícono. Viven acá para que la barra de
+ * Los módulos del sistema, con su ícono. Viven aquí para que la barra de
  * navegación y la portada no se desincronicen.
  *
  * Todos los íconos son de trazo (line/outline), sin relleno sólido: es el

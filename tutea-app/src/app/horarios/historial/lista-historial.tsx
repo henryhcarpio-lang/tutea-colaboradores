@@ -226,7 +226,7 @@ export function ListaHistorial({
           {elegido.cambios.length === 0 ? (
             <EstadoVacio
               titulo="Sin cambios registrados"
-              detalle="En cuanto se guarde un horario para esta persona, cada modificación va a quedar acá con su fecha."
+              detalle="En cuanto se guarde un horario para esta persona, cada modificación va a quedar aquí con su fecha."
             />
           ) : (
             // Del más reciente al más antiguo: lo último que pasó es lo que

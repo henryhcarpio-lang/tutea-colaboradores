@@ -182,7 +182,7 @@ export function ListaColaboradores({
       {activos.length === 0 && !creando ? (
         <EstadoVacio
           titulo="Todavía no hay colaboradores"
-          detalle="Creá el primero y su foto aparecerá como ícono en horarios, vidas y cumpleaños."
+          detalle="Crea el primero y su foto aparecerá como ícono en horarios, vidas y cumpleaños."
         />
       ) : (
         <ul className="space-y-3">

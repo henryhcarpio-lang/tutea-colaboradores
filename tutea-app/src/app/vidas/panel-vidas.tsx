@@ -321,7 +321,7 @@ export function PanelVidas({
     return (
       <EstadoVacio
         titulo="Todavía no hay colaboradores"
-        detalle="Cargá al equipo y cada persona va a aparecer acá con sus corazones del mes."
+        detalle="Carga al equipo y cada persona va a aparecer aquí con sus corazones del mes."
       />
     );
   }

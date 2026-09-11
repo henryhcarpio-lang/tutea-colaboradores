@@ -85,7 +85,7 @@ src/
 Los colores y la tipografía salen del brandbook de Tutea: azul `#154DB2` y verde
 `#22D166` como principales, verde `#029336` y azul marino `#002A66` como
 secundarios, todo en Montserrat. Están centralizados como variables CSS en
-[`globals.css`](src/app/globals.css): **cambiá el color ahí, nunca en cada
+[`globals.css`](src/app/globals.css): **cambia el color ahí, nunca en cada
 componente**.
 
 El verde claro tiene ~1.9:1 de contraste sobre blanco, así que se usa solo como

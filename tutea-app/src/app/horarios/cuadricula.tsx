@@ -236,7 +236,7 @@ export function Cuadricula({
       {visibles.length === 0 ? (
         <EstadoVacio
           titulo="Ningún colaborador coincide con el filtro"
-          detalle="Probá con otra área o quitá los filtros para ver a todo el equipo."
+          detalle="Prueba con otra área o quita los filtros para ver a todo el equipo."
         />
       ) : (
         // La página tiene un ancho de lectura cómodo (max-w-6xl), pero seis

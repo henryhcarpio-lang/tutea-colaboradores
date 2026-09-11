@@ -50,7 +50,7 @@ export async function guardarHorario(
   try {
     bloques = JSON.parse(crudo);
   } catch {
-    return { error: "No se pudo leer el horario. Volvé a intentarlo." };
+    return { error: "No se pudo leer el horario. Vuelve a intentarlo." };
   }
   if (!Array.isArray(bloques)) return { error: "El horario no es válido." };
   if (bloques.length > 60) return { error: "Demasiados bloques en la semana." };

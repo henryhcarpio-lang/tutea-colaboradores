@@ -17,8 +17,8 @@ export default async function Inicio() {
       </h1>
       <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-texto-suave">
         {admin
-          ? "Estás con la sesión de administrador: podés crear, editar y eliminar."
-          : "Acá tenés a mano tu horario, tus vidas del mes y los cumpleaños que se vienen. Entrás y consultás: no hace falta clave ni crear una cuenta."}
+          ? "Estás con la sesión de administrador: puedes crear, editar y eliminar."
+          : "Aquí tienes a mano tu horario, tus vidas del mes y los cumpleaños que se vienen. Entras y consultas: no hace falta clave ni crear una cuenta."}
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

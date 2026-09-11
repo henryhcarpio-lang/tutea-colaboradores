@@ -27,13 +27,13 @@ export async function usarVida(
   const tipoTexto = String(datos.get("tipo") ?? "recuperable");
 
   if (!periodoId) return { error: "Falta el período." };
-  if (motivo.length < 3) return { error: "Escribí el motivo del permiso." };
+  if (motivo.length < 3) return { error: "Escribe el motivo del permiso." };
   if (motivo.length > 200) return { error: "El motivo es demasiado largo." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) {
-    return { error: "Elegí la fecha del permiso." };
+    return { error: "Elige la fecha del permiso." };
   }
   if (!LISTA_TIPOS_VIDA.includes(tipoTexto as TipoVida)) {
-    return { error: "Elegí un tipo de permiso válido." };
+    return { error: "Elige un tipo de permiso válido." };
   }
   const tipo = tipoTexto as TipoVida;
 

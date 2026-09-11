@@ -30,7 +30,7 @@ function validar(datos: FormData): DatosValidados | string {
 
   const fechaTexto = String(datos.get("fecha") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaTexto)) {
-    return "Elegí una fecha para el evento.";
+    return "Elige una fecha para el evento.";
   }
   // Se arma en UTC a medianoche para que la columna `date` guarde exactamente
   // el día escrito, sin correrse por zona horaria.
@@ -39,7 +39,7 @@ function validar(datos: FormData): DatosValidados | string {
 
   const estadoTexto = String(datos.get("estado") ?? "pendiente");
   if (!LISTA_ESTADOS_EVENTO.includes(estadoTexto as EstadoEvento)) {
-    return "Elegí un estado válido.";
+    return "Elige un estado válido.";
   }
 
   const descripcionCruda = String(datos.get("descripcion") ?? "").trim();

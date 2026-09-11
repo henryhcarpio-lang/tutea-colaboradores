@@ -196,7 +196,7 @@ function Tarjeta({
           {!fila.periodo ? (
             <p className="mt-2 text-xs italic text-texto-suave">
               {fila.motivoSinPeriodo === "vencido"
-                ? "Su contrato ya venció: cargá el contrato nuevo en su ficha para reabrir el cupo."
+                ? "Su contrato ya venció: carga el contrato nuevo en su ficha para reabrir el cupo."
                 : "Falta el inicio o el fin de contrato: se carga en la ficha del colaborador."}
             </p>
           ) : (
@@ -357,7 +357,7 @@ export function PanelVacaciones({
     return (
       <EstadoVacio
         titulo="Todavía no hay colaboradores"
-        detalle="Cargá al equipo y cada persona va a aparecer acá con su saldo de vacaciones."
+        detalle="Carga al equipo y cada persona va a aparecer aquí con su saldo de vacaciones."
       />
     );
   }

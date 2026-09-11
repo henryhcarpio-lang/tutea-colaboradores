@@ -11,7 +11,7 @@ export async function ingresar(
 ): Promise<EstadoIngreso> {
   const clave = String(datos.get("clave") ?? "");
 
-  if (!clave) return { error: "Escribí la clave para continuar." };
+  if (!clave) return { error: "Escribe la clave para continuar." };
   if (!claveEsValida(clave)) return { error: "La clave no es correcta." };
 
   await iniciarSesionAdmin();

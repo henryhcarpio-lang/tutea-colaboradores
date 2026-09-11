@@ -25,10 +25,10 @@ export async function registrarVacacion(
 
   if (!periodoId) return { error: "Falta el período." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(inicioTexto)) {
-    return { error: "Elegí la fecha de inicio." };
+    return { error: "Elige la fecha de inicio." };
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(finTexto)) {
-    return { error: "Elegí la fecha de fin." };
+    return { error: "Elige la fecha de fin." };
   }
   const fechaInicio = new Date(`${inicioTexto}T00:00:00.000Z`);
   const fechaFin = new Date(`${finTexto}T00:00:00.000Z`);

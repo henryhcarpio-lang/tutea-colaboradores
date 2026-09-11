@@ -21,7 +21,7 @@ export const TIPOS_VIDA: Record<
   { etiqueta: string; color: string }
 > = {
   // `general` ya no se puede elegir (no está en LISTA_TIPOS_VIDA), pero sigue
-  // acá para que los permisos viejos registrados con ese motivo se sigan
+  // aquí para que los permisos viejos registrados con ese motivo se sigan
   // mostrando bien en el historial: un dato ya guardado no se reescribe.
   general: { etiqueta: "General", color: GRIS },
   medico: { etiqueta: "Descanso médico", color: "#38bdf8" },

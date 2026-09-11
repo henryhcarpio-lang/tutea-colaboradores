@@ -1,7 +1,7 @@
 import type { Area } from "@prisma/client";
 
 // Los colores salen del brandbook: azul principal, verde secundario y azul
-// marino secundario. Se definen una sola vez acá porque el área etiqueta al
+// marino secundario. Se definen una sola vez aquí porque el área etiqueta al
 // colaborador en los cuatro módulos.
 export const AREAS: Record<
   Area,

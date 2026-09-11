@@ -11,12 +11,12 @@ export default async function HistorialVacaciones({
 }: {
   searchParams: Promise<{ colaborador?: string }>;
 }) {
-  // La ficha del colaborador enlaza acá con su id, para caer directo en su
+  // La ficha del colaborador enlaza aquí con su id, para caer directo en su
   // historial en vez de tener que buscarlo en el selector.
   const { colaborador: colaboradorInicial } = await searchParams;
 
   const colaboradores = await prisma.collaborator.findMany({
-    // A diferencia de la vista actual, acá se listan también los inactivos:
+    // A diferencia de la vista actual, aquí se listan también los inactivos:
     // el historial de contratos de alguien que ya no trabaja en Tutea no
     // debería desaparecer.
     orderBy: { nombre: "asc" },
@@ -84,7 +84,7 @@ export default async function HistorialVacaciones({
       {!hayContratos ? (
         <EstadoVacio
           titulo="Todavía no hay contratos cerrados"
-          detalle="Un contrato se archiva acá solo cuando se carga uno nuevo con fechas distintas en la ficha del colaborador."
+          detalle="Un contrato se archiva aquí solo cuando se carga uno nuevo con fechas distintas en la ficha del colaborador."
         />
       ) : (
         <ListaContratos

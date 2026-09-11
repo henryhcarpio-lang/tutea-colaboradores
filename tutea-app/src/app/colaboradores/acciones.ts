@@ -41,7 +41,7 @@ function validar(datos: FormData): DatosValidados | string {
   if (nombre.length > 80) return "El nombre es demasiado largo.";
 
   const area = String(datos.get("area") ?? "");
-  if (!LISTA_AREAS.includes(area as Area)) return "Elegí un área válida.";
+  if (!LISTA_AREAS.includes(area as Area)) return "Elige un área válida.";
 
   // La fecha es opcional: la planilla real del equipo no la tiene para todos,
   // y una fecha inventada dispararía un cumpleaños falso.
@@ -60,7 +60,7 @@ function validar(datos: FormData): DatosValidados | string {
       return "La fecha de nacimiento no puede estar en el futuro.";
     }
     if (fechaNacimiento.getUTCFullYear() < 1940) {
-      return "Revisá el año de nacimiento.";
+      return "Revisa el año de nacimiento.";
     }
   }
 
@@ -79,7 +79,7 @@ function validar(datos: FormData): DatosValidados | string {
     const fecha = new Date(`${texto}T00:00:00.000Z`);
     if (Number.isNaN(fecha.getTime())) return `La fecha de ${etiqueta} no es válida.`;
     if (fecha.getUTCFullYear() < 1990 || fecha.getUTCFullYear() > 2100) {
-      return `Revisá el año de ${etiqueta}.`;
+      return `Revisa el año de ${etiqueta}.`;
     }
     return fecha;
   }
@@ -94,11 +94,11 @@ function validar(datos: FormData): DatosValidados | string {
     return "El fin de contrato no puede ser anterior al inicio.";
   }
   if ((fechaInicioContrato === null) !== (fechaFinContrato === null)) {
-    return "Cargá el inicio y el fin de contrato juntos, o dejá los dos vacíos.";
+    return "Carga el inicio y el fin de contrato juntos, o deja los dos vacíos.";
   }
 
   // El cupo de vacaciones se propone por la duración del contrato, pero
-  // gerencia puede pisarlo a mano desde la ficha; acá llega ya resuelto.
+  // gerencia puede pisarlo a mano desde la ficha; aquí llega ya resuelto.
   const diasVacaciones = Number(datos.get("diasVacaciones"));
   if (!Number.isInteger(diasVacaciones) || diasVacaciones < 0 || diasVacaciones > 60) {
     return "Los días de vacaciones tienen que ser un número entero entre 0 y 60.";
@@ -112,7 +112,7 @@ function validar(datos: FormData): DatosValidados | string {
       return "La foto tiene que ser una imagen JPG, PNG o WebP.";
     }
     if (Buffer.byteLength(fotoCruda, "utf8") > LIMITE_FOTO_BYTES) {
-      return "La foto es demasiado pesada. Probá con otra imagen.";
+      return "La foto es demasiado pesada. Prueba con otra imagen.";
     }
     foto = fotoCruda;
   }
@@ -149,7 +149,7 @@ function validarBloques(crudo: string): BloqueSimple[] | string {
   try {
     bloques = JSON.parse(crudo);
   } catch {
-    return "No se pudo leer el horario. Volvé a intentarlo.";
+    return "No se pudo leer el horario. Vuelve a intentarlo.";
   }
   if (!Array.isArray(bloques)) return "El horario no es válido.";
   if (bloques.length > 60) return "Demasiados bloques en la semana.";
@@ -265,7 +265,7 @@ export async function editarColaborador(
     });
 
     // El cupo por defecto es la plantilla para meses futuros; sin esto, el
-    // admin cambia el número acá y no ve ningún cambio en los corazones de
+    // admin cambia el número aquí y no ve ningún cambio en los corazones de
     // Vidas hasta el mes que viene, lo que parece que el campo "no hace
     // nada". Corregir el cupo del mes en curso es la corrección más obvia
     // cuando se edita el perfil, así que se sincroniza también.
