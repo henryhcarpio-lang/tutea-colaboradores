@@ -165,12 +165,21 @@ cargó uno nuevo, lo dice también (en vez de mostrar el saldo vencido como si
 siguiera vigente).
 
 Cada vez que gerencia carga un contrato nuevo con fechas distintas en la
-ficha del colaborador, `asegurarPeriodosVacacion()` (perezoso, sin cron, en
-`src/lib/vacaciones-servidor.ts`) archiva el período anterior tal como quedó
-—con todo lo que usó— y abre uno nuevo con el cupo que corresponda. Esos
+ficha del colaborador, `sincronizarPeriodoContrato()` archiva el período
+anterior tal como quedó —con todo lo que usó— y abre uno nuevo con el cupo
+que corresponda, al instante (la llama la propia acción de editar). Esos
 períodos cerrados **son el historial completo de todos los contratos** que
 tuvo la persona en la empresa, sin importar cuántas veces renovó; se ven en
 `/vacaciones/historial`, igual que el mes cerrado de Vidas.
+
+`asegurarPeriodosVacacion()` (perezoso, sin cron, en `src/lib/vacaciones-
+servidor.ts`) es el barrido del resto: lo que no pasa por una edición, como
+que un contrato venza solo con el correr de los días. Trae a todo el equipo
+en dos consultas y decide en memoria quién necesita qué, en vez de llamar a
+`sincronizarPeriodoContrato` una vez por persona en un `for` —así estaba
+antes, y con el equipo completo eso eran decenas de idas y vueltas a la base
+en cada carga de `/vacaciones`, la causa real de que la pantalla se sintiera
+lenta.
 
 Los días de un goce puntual, en cambio, se siguen contando **hábiles de
 lunes a sábado** (`diasHabilesLimaSabado`) — una unidad distinta de la que

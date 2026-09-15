@@ -72,37 +72,89 @@ export async function sincronizarPeriodoContrato(
 
 /**
  * Barrido de todos los colaboradores. El alta y la edición ya sincronizan a
- * la persona que se tocó, así que esto existe para lo que no pasa por una
- * acción: que el contrato de alguien venza con el correr de los días, o que
- * a alguien lo den de baja. Sin cron, igual que `asegurarPeriodos()` de
- * Vidas: corre al entrar al módulo, y es idempotente.
+ * la persona que se tocó (`sincronizarPeriodoContrato`, de a una), así que
+ * esto existe para lo que no pasa por una acción: que el contrato de alguien
+ * venza con el correr de los días, o que a alguien lo den de baja. Sin cron,
+ * igual que `asegurarPeriodos()` de Vidas: corre al entrar al módulo, y es
+ * idempotente.
+ *
+ * A propósito NO reutiliza `sincronizarPeriodoContrato` en un `for`: llamarla
+ * una vez por persona son dos o tres consultas cada vez, y con el equipo
+ * completo eso eran decenas de idas y vueltas a la base en cada carga de
+ * /vacaciones —la causa real de la lentitud reportada—. Acá se trae todo en
+ * dos consultas, se decide en memoria quién necesita qué, y se aplica en una
+ * sola transacción sin importar cuánta gente haya.
  *
  * El cupo con el que abriría un período nuevo sale de la duración del
  * contrato; un cupo ajustado a mano no se pisa, porque un contrato que ya
- * tiene su período abierto no se vuelve a crear.
+ * tiene su período abierto no se vuelve a crear, solo se corrige el número
+ * si quedó desalineado.
  */
 export async function asegurarPeriodosVacacion(): Promise<void> {
-  const colaboradores = await prisma.collaborator.findMany({
-    select: {
-      id: true,
-      activo: true,
-      fechaInicioContrato: true,
-      fechaFinContrato: true,
-    },
-  });
+  const hoy = hoyEnLima();
+
+  const [colaboradores, abiertos] = await Promise.all([
+    prisma.collaborator.findMany({
+      select: {
+        id: true,
+        activo: true,
+        fechaInicioContrato: true,
+        fechaFinContrato: true,
+      },
+    }),
+    prisma.vacationPeriod.findMany({
+      where: { cerradoEn: null },
+      select: { id: true, colaboradorId: true, desde: true, hasta: true, diasAsignados: true },
+    }),
+  ]);
+
+  const abiertoDe = new Map(abiertos.map((p) => [p.colaboradorId, p]));
+
+  const aCerrar: string[] = [];
+  const aCrear: { colaboradorId: string; desde: Date; hasta: Date; diasAsignados: number }[] = [];
+  const aCorregirCupo: { id: string; diasAsignados: number }[] = [];
 
   for (const c of colaboradores) {
     // A quien está de baja se le cierra el período aunque su ficha siga
     // teniendo fechas de contrato.
     const inicio = c.activo ? c.fechaInicioContrato : null;
     const fin = c.activo ? c.fechaFinContrato : null;
-    await sincronizarPeriodoContrato(
-      c.id,
-      inicio,
-      fin,
-      inicio && fin ? diasPorDuracionDeContrato(inicio, fin) : 0,
-    );
+    const hayContrato = Boolean(inicio && fin);
+    const diasAsignados = inicio && fin ? diasPorDuracionDeContrato(inicio, fin) : 0;
+    const vigente = abiertoDe.get(c.id);
+
+    const mismoContrato =
+      vigente &&
+      hayContrato &&
+      vigente.desde.getTime() === inicio!.getTime() &&
+      vigente.hasta.getTime() === fin!.getTime();
+
+    if (mismoContrato) {
+      if (vigente!.diasAsignados !== diasAsignados) {
+        aCorregirCupo.push({ id: vigente!.id, diasAsignados });
+      }
+      continue;
+    }
+
+    if (vigente) aCerrar.push(vigente.id);
+
+    const abrirNuevo = hayContrato && fin! >= hoy;
+    if (abrirNuevo) {
+      aCrear.push({ colaboradorId: c.id, desde: inicio!, hasta: fin!, diasAsignados });
+    }
   }
+
+  if (aCerrar.length === 0 && aCrear.length === 0 && aCorregirCupo.length === 0) return;
+
+  await prisma.$transaction([
+    ...(aCerrar.length > 0
+      ? [prisma.vacationPeriod.updateMany({ where: { id: { in: aCerrar } }, data: { cerradoEn: new Date() } })]
+      : []),
+    ...(aCrear.length > 0 ? [prisma.vacationPeriod.createMany({ data: aCrear })] : []),
+    ...aCorregirCupo.map((u) =>
+      prisma.vacationPeriod.update({ where: { id: u.id }, data: { diasAsignados: u.diasAsignados } }),
+    ),
+  ]);
 }
 
 export type ContratoPorVencer = { id: string; nombre: string; fechaFinContrato: string };
