@@ -5,7 +5,9 @@ import { asegurarPeriodos } from "@/lib/vidas";
 import { EncabezadoSeccion } from "@/components/seccion";
 import { etiquetaMesPeriodo, hoyEnLima, mesPeriodoActual } from "@/lib/fecha";
 import { urlFoto } from "@/lib/foto";
+import { contarQueDescuentan } from "@/lib/tipo-vida";
 import { PanelVidas, type FilaVidas } from "./panel-vidas";
+import { ResumenVidas } from "./resumen-vidas";
 
 export const metadata = { title: "Vidas" };
 
@@ -61,6 +63,14 @@ export default async function Vidas() {
 
   const mes = etiquetaMesPeriodo(mesPeriodoActual());
 
+  // Estadística del mes: cuánto se asignó contra cuánto se gastó de verdad.
+  const totalAsignadas = filas.reduce((t, f) => t + f.vidasAsignadas, 0);
+  const totalUsadas = filas.reduce((t, f) => t + contarQueDescuentan(f.usos), 0);
+  const totalSinDescontar = filas.reduce(
+    (t, f) => t + f.usos.length - contarQueDescuentan(f.usos),
+    0,
+  );
+
   return (
     <>
       <EncabezadoSeccion
@@ -75,6 +85,14 @@ export default async function Vidas() {
           </Link>
         }
       />
+      {admin && filas.length > 0 && (
+        <ResumenVidas
+          etiquetaMes={mes}
+          asignadas={totalAsignadas}
+          usadas={totalUsadas}
+          sinDescontar={totalSinDescontar}
+        />
+      )}
       <PanelVidas
         filas={filas}
         admin={admin}

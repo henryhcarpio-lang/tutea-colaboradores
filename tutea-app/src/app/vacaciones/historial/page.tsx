@@ -1,4 +1,6 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
+import { esAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { EncabezadoSeccion, EstadoVacio } from "@/components/seccion";
 import { urlFoto } from "@/lib/foto";
@@ -11,6 +13,10 @@ export default async function HistorialVacaciones({
 }: {
   searchParams: Promise<{ colaborador?: string }>;
 }) {
+  // Igual que Colaboradores: el detalle de contratos y goces de cada persona
+  // no es para todo el equipo, solo para quien gestiona las vacaciones.
+  if (!(await esAdmin())) redirect("/vacaciones");
+
   // La ficha del colaborador enlaza aquí con su id, para caer directo en su
   // historial en vez de tener que buscarlo en el selector.
   const { colaborador: colaboradorInicial } = await searchParams;

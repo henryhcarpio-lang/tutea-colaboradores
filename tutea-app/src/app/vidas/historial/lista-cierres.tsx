@@ -6,7 +6,7 @@ import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
 import { Corazones } from "../corazones";
-import { TIPOS_VIDA } from "@/lib/tipo-vida";
+import { contarQueDescuentan, TIPOS_VIDA } from "@/lib/tipo-vida";
 
 type Uso = { id: string; fecha: string; tipo: TipoVida; motivo: string | null };
 
@@ -37,7 +37,7 @@ function fecha(iso: string, conHora = false): string {
 }
 
 function TarjetaCierre({ cierre }: { cierre: Cierre }) {
-  const usadas = cierre.usos.length;
+  const usadas = contarQueDescuentan(cierre.usos);
   const excedidas = Math.max(0, usadas - cierre.vidasAsignadas);
 
   return (
@@ -52,8 +52,8 @@ function TarjetaCierre({ cierre }: { cierre: Cierre }) {
       <div className="mt-3">
         <Corazones
           asignadas={cierre.vidasAsignadas}
-          usos={cierre.usos.map((u) => ({ tipo: u.tipo }))}
-          indiceAnimado={null}
+          usos={cierre.usos.map((u) => ({ id: u.id, tipo: u.tipo }))}
+          idAnimado={null}
         />
       </div>
 
@@ -81,6 +81,9 @@ function TarjetaCierre({ cierre }: { cierre: Cierre }) {
                 >
                   {TIPOS_VIDA[uso.tipo].etiqueta}
                 </span>
+              )}
+              {!TIPOS_VIDA[uso.tipo].descuentaCupo && (
+                <span className="italic text-texto-suave/80">no descuenta</span>
               )}
               {uso.motivo !== null ? (
                 <span>{uso.motivo}</span>

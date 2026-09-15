@@ -5,6 +5,7 @@ import { esAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { hoyEnLima } from "@/lib/fecha";
 import { calcularCumple } from "@/lib/cumpleanos";
+import { colaboradoresConContratoPorVencer } from "@/lib/vacaciones-servidor";
 import { Navegacion } from "@/components/navegacion";
 import { Confeti } from "@/components/confeti";
 
@@ -41,9 +42,14 @@ async function cumpleanerosDeHoy(): Promise<string[]> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const [admin, cumpleaneros] = await Promise.all([
-    esAdmin(),
+  const admin = await esAdmin();
+  // El aviso de contratos por vencer solo importa —y solo se consulta— para
+  // quien puede hacer algo al respecto. Se calcula acá, no solo en
+  // /vacaciones, para que la alerta llegue a gerencia entre en la página que
+  // entre, como el saludo de cumpleaños.
+  const [cumpleaneros, contratosPorVencer] = await Promise.all([
     cumpleanerosDeHoy(),
+    admin ? colaboradoresConContratoPorVencer() : Promise.resolve([]),
   ]);
 
   return (
@@ -56,7 +62,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           nombres={cumpleaneros}
           clave={hoyEnLima().toISOString().slice(0, 10)}
         />
-        <Navegacion admin={admin} />
+        <Navegacion admin={admin} avisosVacaciones={contratosPorVencer.length} />
         <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-10">
           {children}
         </main>

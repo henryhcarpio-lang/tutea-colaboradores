@@ -125,8 +125,17 @@ vez el sábado a las 9, las fotos quedaban prácticamente pegadas.
 para descanso médico, verde para desastre natural, y gris para los dos
 motivos corrientes —permiso recuperable (se repone trabajando otro día) y
 omitir una tardanza—, que se distinguen entre sí por el reloj que lleva
-encima el de tardanza. Todos reducen el cupo por igual: la etiqueta es solo
-para que gerencia vea de un vistazo por qué se usó cada uno.
+encima el de tardanza.
+
+**Médico y desastre no descuentan del cupo** (`TIPOS_VIDA[tipo].descuentaCupo`,
+en `src/lib/tipo-vida.ts`): una emergencia de salud o un desastre natural no
+son una falta que la persona "gasta" de su cuenta, así que quedan registrados
+—gerencia necesita el dato— pero no le cuestan una vida. Se dibujan aparte,
+al final de la fila de corazones, con la nota "N sin descontar", y nunca
+cuentan para el "N de más". Los otros tres tipos sí descuentan, porque ahí la
+vida es justamente el permiso que la persona está usando. La cuenta vive en
+`contarQueDescuentan()`, un solo lugar para que "cuáles descuentan" no se
+decida distinto en cada pantalla.
 
 `general` sigue existiendo en el enum pero **ya no se puede elegir**
 (`LISTA_TIPOS_VIDA` no lo incluye): está solo para que los permisos viejos
@@ -134,8 +143,13 @@ registrados con ese motivo se sigan mostrando bien. Un dato ya guardado no se
 reescribe, así que el tipo no se borra de la base.
 
 Un corazón que pasa el cupo se pinta rojo oscuro **solo si su motivo es de
-los grises**; médico y desastre conservan el suyo, porque ese color dice algo
-que el "N de más" de al lado no dice. Todo vive en `src/lib/tipo-vida.ts`.
+los grises que descuentan**; médico y desastre nunca llegan a "excedida" —no
+descuentan, así que nunca agotan nada.
+
+La estadística del mes (asignadas / usadas / disponibles / médico-desastre,
+`src/app/vidas/resumen-vidas.tsx`) es **solo para admin**: es información de
+gestión, no algo que el resto del equipo necesite ver en la portada del
+módulo.
 
 ## Vacaciones
 
@@ -170,6 +184,19 @@ Cada goce guarda **los días como número fijo**, no los recalcula desde
 goce ya aprobado tiene que seguir diciendo lo que decía cuando se aprobó. El
 formulario sí sugiere el valor automáticamente apenas se eligen las fechas,
 pero queda editable para las excepciones.
+
+**La vista pública solo ve la barra.** Fechas de contrato, días restantes, el
+detalle de cada goce y el enlace al historial son solo para admin
+(`panel-vacaciones.tsx`); el resto del equipo ve la barra de cada persona y
+nada más — no es un dato que todos necesiten gestionar, solo gerencia.
+
+**Aviso de contratos por vencer.** Sin cron ni correo: `RootLayout`
+(`src/app/layout.tsx`) calcula, en cada carga de página y solo si hay sesión
+de admin, quiénes tienen el contrato vigente a menos de 30 días de vencer
+(`colaboradoresConContratoPorVencer()`) y lo muestra como un punto rojo con
+el número, junto al ícono de Vacaciones en la barra de navegación — llega a
+gerencia entre en la página que entre, igual que el saludo de cumpleaños. El
+detalle completo (quién, cuándo) vive en un banner dentro de `/vacaciones`.
 
 ## Calendario de eventos
 

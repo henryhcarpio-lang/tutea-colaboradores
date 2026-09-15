@@ -19,7 +19,8 @@ function CorazonUsado({
 }) {
   // Un corazón de más se pinta rojo oscuro solo si su motivo es de los
   // neutros (gris): médico y desastre conservan su color, que dice algo que
-  // el "N de más" de al lado no dice.
+  // el "N de más" de al lado no dice. Además médico y desastre nunca llegan
+  // acá con excedida=true: no descuentan cupo, así que nunca lo pasan.
   const propio = TIPOS_VIDA[tipo].color;
   const color = excedida && propio === GRIS_NEUTRO ? "#7f1d1d" : propio;
   const titulo = `Vida usada · ${TIPOS_VIDA[tipo].etiqueta}${excedida ? " (excedida)" : ""}`;
@@ -72,41 +73,46 @@ function CorazonDisponible() {
   );
 }
 
-export type UsoCorazon = { tipo: TipoVida };
+export type UsoCorazon = { id: string; tipo: TipoVida };
 
 /**
  * Fila de corazones al estilo de un videojuego: llenos los disponibles, rotos
- * y coloreados por motivo los gastados. Si se usaron más vidas que el cupo,
- * los excedentes se agregan al final con un aro rojo, en vez de bloquear el
- * registro.
+ * y coloreados por motivo los gastados. Descanso médico y desastre natural no
+ * descuentan del cupo —se registran igual, para que gerencia tenga el dato,
+ * pero no le cuestan una vida a la persona— así que se dibujan aparte, al
+ * final de la fila, y nunca cuentan para el "N de más". Si se usaron más
+ * vidas del cupo entre los motivos que sí descuentan, los excedentes se
+ * agregan en rojo oscuro, en vez de bloquear el registro.
  */
 export function Corazones({
   asignadas,
   usos,
-  indiceAnimado,
+  idAnimado,
 }: {
   asignadas: number;
   usos: UsoCorazon[];
-  /** Índice del corazón que se acaba de gastar; se anima solo ese. */
-  indiceAnimado: number | null;
+  /** Id del uso recién gastado; se anima solo ese corazón. */
+  idAnimado: string | null;
 }) {
-  const usadas = usos.length;
+  const dentroDelCupo = usos.filter((u) => TIPOS_VIDA[u.tipo].descuentaCupo);
+  const fueraDelCupo = usos.filter((u) => !TIPOS_VIDA[u.tipo].descuentaCupo);
+  const usadas = dentroDelCupo.length;
   const disponibles = Math.max(0, asignadas - usadas);
 
-  if (asignadas === 0 && usadas === 0) {
+  if (asignadas === 0 && usadas === 0 && fueraDelCupo.length === 0) {
     return <span className="text-sm text-texto-suave">Sin cupo este mes</span>;
   }
 
-  const excedidas = usos.filter((_, i) => i >= asignadas).length;
+  const excedidas = dentroDelCupo.filter((_, i) => i >= asignadas).length;
 
   return (
     <div className="flex flex-wrap items-center gap-1">
-      {usos.map((uso, i) => (
+      {dentroDelCupo.map((uso, i) => (
         <CorazonUsado
-          key={i}
+          key={uso.id}
           tipo={uso.tipo}
           excedida={i >= asignadas}
-          animar={indiceAnimado === i}
+          animar={idAnimado === uso.id}
         />
       ))}
       {Array.from({ length: disponibles }, (_, i) => (
@@ -115,6 +121,19 @@ export function Corazones({
       {excedidas > 0 && (
         <span className="ml-1 text-xs font-semibold text-peligro">
           {excedidas} de más
+        </span>
+      )}
+      {fueraDelCupo.map((uso) => (
+        <CorazonUsado
+          key={uso.id}
+          tipo={uso.tipo}
+          excedida={false}
+          animar={idAnimado === uso.id}
+        />
+      ))}
+      {fueraDelCupo.length > 0 && (
+        <span className="ml-1 text-xs text-texto-suave">
+          {fueraDelCupo.length} sin descontar
         </span>
       )}
     </div>

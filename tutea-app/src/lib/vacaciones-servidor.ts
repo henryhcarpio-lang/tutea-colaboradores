@@ -104,3 +104,35 @@ export async function asegurarPeriodosVacacion(): Promise<void> {
     );
   }
 }
+
+export type ContratoPorVencer = { id: string; nombre: string; fechaFinContrato: string };
+
+/**
+ * Quiénes tienen el contrato vigente a menos de `dentroDeDias` de vencer, sin
+ * haber vencido todavía. Es el aviso para gerencia: sin cron ni correo, se
+ * calcula solo (barato: una consulta directa a `fechaFinContrato`, sin tocar
+ * VacationPeriod) cada vez que un admin entra a cualquier página, igual que
+ * el saludo de cumpleaños del layout.
+ */
+export async function colaboradoresConContratoPorVencer(
+  dentroDeDias = 30,
+): Promise<ContratoPorVencer[]> {
+  const hoy = hoyEnLima();
+  const limite = new Date(hoy);
+  limite.setUTCDate(limite.getUTCDate() + dentroDeDias);
+
+  const colaboradores = await prisma.collaborator.findMany({
+    where: {
+      activo: true,
+      fechaFinContrato: { gte: hoy, lte: limite },
+    },
+    orderBy: { fechaFinContrato: "asc" },
+    select: { id: true, nombre: true, fechaFinContrato: true },
+  });
+
+  return colaboradores.map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+    fechaFinContrato: c.fechaFinContrato!.toISOString(),
+  }));
+}

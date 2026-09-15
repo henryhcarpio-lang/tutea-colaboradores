@@ -14,7 +14,27 @@ function claseEnlace(activo: boolean) {
   }`;
 }
 
-export function Navegacion({ admin }: { admin: boolean }) {
+/** Puntito rojo de aviso, mismo lenguaje visual en cualquier ícono de la barra. */
+function Aviso({ cantidad }: { cantidad: number }) {
+  if (cantidad === 0) return null;
+  return (
+    <span
+      title={`${cantidad} ${cantidad === 1 ? "contrato vence" : "contratos vencen"} pronto`}
+      className="ml-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-peligro px-1 text-[10px] font-semibold leading-none text-white"
+    >
+      {cantidad}
+    </span>
+  );
+}
+
+export function Navegacion({
+  admin,
+  avisosVacaciones,
+}: {
+  admin: boolean;
+  /** Contratos que vencen dentro de un mes; se marca con un puntito rojo en Vacaciones. */
+  avisosVacaciones: number;
+}) {
   const ruta = usePathname();
   const esActivo = (href: string) =>
     href === "/" ? ruta === "/" : ruta.startsWith(href);
@@ -51,6 +71,7 @@ export function Navegacion({ admin }: { admin: boolean }) {
               >
                 <Icono aria-hidden size={16} strokeWidth={1.75} />
                 {etiqueta}
+                {href === "/vacaciones" && <Aviso cantidad={avisosVacaciones} />}
               </Link>
             ))}
           </nav>
@@ -96,6 +117,7 @@ export function Navegacion({ admin }: { admin: boolean }) {
             >
               <Icono aria-hidden size={16} strokeWidth={1.75} />
               {etiqueta}
+              {href === "/vacaciones" && <Aviso cantidad={avisosVacaciones} />}
             </Link>
           ))}
         </nav>

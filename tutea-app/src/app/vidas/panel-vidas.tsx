@@ -7,7 +7,7 @@ import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
 import { Corazones } from "./corazones";
-import { LISTA_TIPOS_VIDA, TIPOS_VIDA } from "@/lib/tipo-vida";
+import { contarQueDescuentan, LISTA_TIPOS_VIDA, TIPOS_VIDA } from "@/lib/tipo-vida";
 import {
   ajustarCupo,
   anularUso,
@@ -143,22 +143,27 @@ function Tarjeta({
   const [verDetalle, setVerDetalle] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  // Se anima solo el corazón recién gastado, comparando con el render previo.
-  const usadasPrevias = useRef(fila.usos.length);
-  const [indiceAnimado, setIndiceAnimado] = useState<number | null>(null);
+  // Se anima solo el corazón recién gastado, comparando los ids con el
+  // render previo (no la posición: médico y desastre se dibujan aparte del
+  // resto, así que un índice fijo ya no identifica el corazón correcto).
+  const idsPrevios = useRef(new Set(fila.usos.map((u) => u.id)));
+  const [idAnimado, setIdAnimado] = useState<string | null>(null);
 
   useEffect(() => {
-    if (fila.usos.length > usadasPrevias.current) {
-      setIndiceAnimado(fila.usos.length - 1);
-      const t = setTimeout(() => setIndiceAnimado(null), 600);
-      usadasPrevias.current = fila.usos.length;
+    const nuevo = fila.usos.find((u) => !idsPrevios.current.has(u.id));
+    idsPrevios.current = new Set(fila.usos.map((u) => u.id));
+    if (nuevo) {
+      setIdAnimado(nuevo.id);
+      const t = setTimeout(() => setIdAnimado(null), 600);
       return () => clearTimeout(t);
     }
-    usadasPrevias.current = fila.usos.length;
-  }, [fila.usos.length]);
+  }, [fila.usos]);
 
-  const usadas = fila.usos.length;
+  // Descanso médico y desastre natural no le cuestan una vida a la persona:
+  // se registran igual, pero no entran en esta cuenta (§ tipo-vida.ts).
+  const usadas = contarQueDescuentan(fila.usos);
   const disponibles = Math.max(0, fila.vidasAsignadas - usadas);
+  const totalUsos = fila.usos.length;
 
   return (
     <li className="rounded-2xl border border-borde bg-superficie p-4">
@@ -178,14 +183,14 @@ function Tarjeta({
           <div className="mt-2">
             <Corazones
               asignadas={fila.vidasAsignadas}
-              usos={fila.usos.map((u) => ({ tipo: u.tipo }))}
-              indiceAnimado={indiceAnimado}
+              usos={fila.usos.map((u) => ({ id: u.id, tipo: u.tipo }))}
+              idAnimado={idAnimado}
             />
           </div>
           <p className="mt-1.5 text-xs text-texto-suave">
             {disponibles} de {fila.vidasAsignadas}{" "}
             {fila.vidasAsignadas === 1 ? "vida disponible" : "vidas disponibles"}
-            {usadas > 0 && (
+            {totalUsos > 0 && (
               <>
                 {" · "}
                 <button
@@ -193,8 +198,8 @@ function Tarjeta({
                   onClick={() => setVerDetalle((v) => !v)}
                   className="hover:text-texto hover:underline"
                 >
-                  {verDetalle ? "ocultar" : "ver"} {usadas === 1 ? "el" : "los"}{" "}
-                  {usadas} {usadas === 1 ? "uso" : "usos"}
+                  {verDetalle ? "ocultar" : "ver"} {totalUsos === 1 ? "el" : "los"}{" "}
+                  {totalUsos} {totalUsos === 1 ? "uso" : "usos"}
                 </button>
               </>
             )}
@@ -273,6 +278,9 @@ function Tarjeta({
                 >
                   {TIPOS_VIDA[uso.tipo].etiqueta}
                 </span>
+              )}
+              {!TIPOS_VIDA[uso.tipo].descuentaCupo && (
+                <span className="italic text-texto-suave/80">no descuenta</span>
               )}
               {uso.motivo !== null ? (
                 <span>{uso.motivo}</span>

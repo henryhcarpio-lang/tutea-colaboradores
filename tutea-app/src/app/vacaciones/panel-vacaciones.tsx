@@ -194,11 +194,16 @@ function Tarjeta({
           </div>
 
           {!fila.periodo ? (
-            <p className="mt-2 text-xs italic text-texto-suave">
-              {fila.motivoSinPeriodo === "vencido"
-                ? "Su contrato ya venció: carga el contrato nuevo en su ficha para reabrir el cupo."
-                : "Falta el inicio o el fin de contrato: se carga en la ficha del colaborador."}
-            </p>
+            // Sin período no hay nada que dibujar como barra: el motivo
+            // (falta el contrato, o ya venció) es información operativa,
+            // así que solo se le explica a gerencia.
+            admin && (
+              <p className="mt-2 text-xs italic text-texto-suave">
+                {fila.motivoSinPeriodo === "vencido"
+                  ? "Su contrato ya venció: carga el contrato nuevo en su ficha para reabrir el cupo."
+                  : "Falta el inicio o el fin de contrato: se carga en la ficha del colaborador."}
+              </p>
+            )
           ) : (
             <>
               {(() => {
@@ -208,9 +213,15 @@ function Tarjeta({
                 const excedente = Math.max(0, usados - p.diasAsignados);
                 return (
                   <>
-                    <p className="mt-0.5 text-xs text-texto-suave">
-                      Contrato del {fechaCorta(p.desde)} al {fechaCorta(p.hasta)}
-                    </p>
+                    {/* Para el resto del equipo, las vacaciones de cada
+                        persona son solo la barra: ni las fechas del
+                        contrato ni el detalle de cada goce son asunto de
+                        todos. Gerencia sí ve todo, para poder gestionarlo. */}
+                    {admin && (
+                      <p className="mt-0.5 text-xs text-texto-suave">
+                        Contrato del {fechaCorta(p.desde)} al {fechaCorta(p.hasta)}
+                      </p>
+                    )}
                     <div className="mt-2">
                       <BarraVacaciones
                         asignados={p.diasAsignados}
@@ -221,29 +232,31 @@ function Tarjeta({
                         }))}
                       />
                     </div>
-                    <p className="mt-1.5 text-xs text-texto-suave">
-                      {disponibles} de {p.diasAsignados} días restantes
-                      {excedente > 0 && (
-                        <span className="font-semibold text-peligro">
-                          {" "}
-                          · {excedente} de adelanto
-                        </span>
-                      )}
-                      {p.usos.length > 0 && (
-                        <>
-                          {" · "}
-                          <button
-                            type="button"
-                            onClick={() => setVerDetalle((v) => !v)}
-                            className="hover:text-texto hover:underline"
-                          >
-                            {verDetalle ? "ocultar" : "ver"}{" "}
-                            {p.usos.length === 1 ? "el" : "los"} {p.usos.length}{" "}
-                            {p.usos.length === 1 ? "período tomado" : "períodos tomados"}
-                          </button>
-                        </>
-                      )}
-                    </p>
+                    {admin && (
+                      <p className="mt-1.5 text-xs text-texto-suave">
+                        {disponibles} de {p.diasAsignados} días restantes
+                        {excedente > 0 && (
+                          <span className="font-semibold text-peligro">
+                            {" "}
+                            · {excedente} de adelanto
+                          </span>
+                        )}
+                        {p.usos.length > 0 && (
+                          <>
+                            {" · "}
+                            <button
+                              type="button"
+                              onClick={() => setVerDetalle((v) => !v)}
+                              className="hover:text-texto hover:underline"
+                            >
+                              {verDetalle ? "ocultar" : "ver"}{" "}
+                              {p.usos.length === 1 ? "el" : "los"} {p.usos.length}{" "}
+                              {p.usos.length === 1 ? "período tomado" : "períodos tomados"}
+                            </button>
+                          </>
+                        )}
+                      </p>
+                    )}
                   </>
                 );
               })()}

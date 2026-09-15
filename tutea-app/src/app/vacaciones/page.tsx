@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { esAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { asegurarPeriodosVacacion } from "@/lib/vacaciones-servidor";
+import {
+  asegurarPeriodosVacacion,
+  colaboradoresConContratoPorVencer,
+} from "@/lib/vacaciones-servidor";
 import { EncabezadoSeccion } from "@/components/seccion";
 import { hoyEnLima } from "@/lib/fecha";
+import { cuentaRegresiva } from "@/lib/cumpleanos";
 import { urlFoto } from "@/lib/foto";
 import { PanelVacaciones, type FilaVacaciones } from "./panel-vacaciones";
 
@@ -15,6 +19,8 @@ export default async function Vacaciones() {
   // Igual que Vidas: sin cron, el corte se hace perezosamente al entrar al
   // módulo, comparando el contrato declarado contra el período abierto.
   await asegurarPeriodosVacacion();
+
+  const porVencer = admin ? await colaboradoresConContratoPorVencer() : [];
 
   const colaboradores = await prisma.collaborator.findMany({
     where: { activo: true },
@@ -95,14 +101,47 @@ export default async function Vacaciones() {
         titulo="Vacaciones"
         descripcion="Días de cada colaborador en su contrato actual: cuántos tiene, cuántos usó y qué fechas tomó."
         acciones={
-          <Link
-            href="/vacaciones/historial"
-            className="rounded-xl border border-borde px-3 py-2 text-sm hover:bg-superficie"
-          >
-            Ver contratos anteriores
-          </Link>
+          admin && (
+            <Link
+              href="/vacaciones/historial"
+              className="rounded-xl border border-borde px-3 py-2 text-sm hover:bg-superficie"
+            >
+              Ver contratos anteriores
+            </Link>
+          )
         }
       />
+
+      {porVencer.length > 0 && (
+        <section className="aparecer mb-8 rounded-2xl border border-peligro/25 bg-peligro-suave p-5">
+          <h2 className="text-sm font-semibold text-peligro">
+            {porVencer.length === 1
+              ? "1 contrato vence este mes"
+              : `${porVencer.length} contratos vencen este mes`}
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {porVencer.map((c) => {
+              const faltan = Math.round(
+                (new Date(c.fechaFinContrato).getTime() - hoyEnLima().getTime()) /
+                  (24 * 60 * 60 * 1000),
+              );
+              return (
+                <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span className="font-medium">{c.nombre}</span>
+                  <span className="text-xs font-semibold text-peligro">
+                    vence {cuentaRegresiva(faltan)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-3 text-xs text-texto-suave">
+            Carga el contrato nuevo en la ficha de cada persona para que su cupo
+            siga abierto sin cortes.
+          </p>
+        </section>
+      )}
+
       <PanelVacaciones
         filas={filas}
         admin={admin}
