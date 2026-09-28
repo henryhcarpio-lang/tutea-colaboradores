@@ -1,7 +1,7 @@
-# Sistema de Gestión de Colaboradores — Tutea
+# Sistema de TH — Tutea
 
-Aplicación web interna: horarios, vidas (permisos mensuales) y cumpleaños del
-equipo. La especificación completa está en
+Sistema de Talento Humano, aplicación web interna: horarios, vidas (permisos
+mensuales), vacaciones, cumpleaños, calendario y documentos del equipo. La especificación completa está en
 [`../tutea-sistema-colaboradores-spec.md`](../tutea-sistema-colaboradores-spec.md).
 
 ## Estado
@@ -43,7 +43,15 @@ solo lectura, así que la base se perdería en cada deploy.
 
 El esquema vive en [`prisma/schema.prisma`](prisma/schema.prisma) y refleja §3
 del spec. Las fotos se guardan como base64 dentro de la propia base: para ~15
-personas es trivial y no hace falta ningún servicio de archivos.
+personas es trivial y no hace falta ningún servicio de archivos. Los
+documentos (RIT, MOF, modelos) también viven en la base, como bytes.
+
+**Todas las tablas llevan RLS sin políticas** (`habilitar_rls`, y
+`documentos_y_rls_vacaciones` para las que se agregaron después): Supabase
+publica el esquema por PostgREST con una clave anónima que es pública por
+diseño, y RLS sin políticas la deja sin acceso. La app no se ve afectada
+porque Prisma se conecta con el rol `postgres`, dueño de las tablas. Toda
+tabla nueva tiene que sumarse en su migración.
 
 ## Cómo está organizado
 
@@ -57,9 +65,12 @@ src/
 │   │   └── historial/      Meses ya archivados
 │   ├── cumpleanos/         Cumpleaños del mes y aviso de los próximos 7 días
 │   ├── calendario/         Calendario mensual de eventos de la empresa
+│   ├── vacaciones/         Quién está de vacaciones y, para admin, el saldo
+│   │   └── historial/      Contratos cerrados, con sus goces (solo admin)
+│   ├── documentos/         Políticas (RIT, MOF) y modelos para descargar
 │   ├── colaboradores/      CRUD de colaboradores — única sección que exige admin
 │   ├── ingresar/           Login de gerencia
-│   └── api/sesion/salir/   Cierre de sesión
+│   └── api/                Salir de la sesión; servir fotos y documentos
 ├── components/
 │   ├── navegacion.tsx      Barra superior; recibe si hay sesión admin
 │   ├── avatar.tsx          Ícono redondo del colaborador (foto o iniciales)
@@ -194,10 +205,13 @@ goce ya aprobado tiene que seguir diciendo lo que decía cuando se aprobó. El
 formulario sí sugiere el valor automáticamente apenas se eligen las fechas,
 pero queda editable para las excepciones.
 
-**La vista pública solo ve la barra.** Fechas de contrato, días restantes, el
-detalle de cada goce y el enlace al historial son solo para admin
-(`panel-vacaciones.tsx`); el resto del equipo ve la barra de cada persona y
-nada más — no es un dato que todos necesiten gestionar, solo gerencia.
+**La vista pública solo dice si la persona está de vacaciones hoy.** Es lo
+que el resto del equipo necesita saber (¿puedo contar con esta persona?): se
+calcula con una sola consulta a los goces que empezaron y todavía no
+terminaron, sin importar a qué contrato pertenezcan. Admin ve además hasta
+qué día, la barra de saldo, las fechas del contrato, el detalle de cada goce
+y el enlace al historial (`panel-vacaciones.tsx`) — el saldo no es un dato
+que todos necesiten, solo gerencia.
 
 **Aviso de contratos por vencer.** Sin cron ni correo: `RootLayout`
 (`src/app/layout.tsx`) calcula, en cada carga de página y solo si hay sesión
@@ -206,6 +220,30 @@ de admin, quiénes tienen el contrato vigente a menos de 30 días de vencer
 el número, junto al ícono de Vacaciones en la barra de navegación — llega a
 gerencia entre en la página que entre, igual que el saludo de cumpleaños. El
 detalle completo (quién, cuándo) vive en un banner dentro de `/vacaciones`.
+
+## Documentos
+
+Dos secciones en `/documentos`: **políticas** (RIT, MOF), que se leen en el
+navegador, y **modelos** (solicitud de vacaciones, carta de renuncia), que se
+descargan para completarlos. Todo el equipo los ve sin clave; solo admin sube
+y elimina (`src/app/documentos/acciones.ts`, con confirmación al eliminar).
+
+El archivo se guarda como bytes en la tabla `documentos` y se entrega por
+`/api/documentos/[id]`: `inline` para una política en PDF, `attachment` para
+todo lo demás o con `?descargar=1`. El listado nunca trae los bytes, solo
+título, tamaño y extensión.
+
+**Tope de 4 MB por archivo** (`TAMANO_MAXIMO_BYTES`, en `src/lib/documentos.ts`):
+Vercel no acepta más de 4,5 MB por petición, y el límite de los server actions
+se subió a ese número en `next.config.ts` (por defecto es 1 MB). Un PDF de
+texto entra de sobra; un documento escaneado puede pasarse y hay que
+comprimirlo antes. Si algún día hace falta subir archivos más grandes, el
+camino es Supabase Storage con subida directa desde el navegador, no subir el
+tope.
+
+El tipo de archivo se decide por la **extensión**, no por lo que manda el
+navegador: en Windows un .docx a veces llega sin tipo, y el tipo es lo que le
+dice al navegador si puede abrirlo o tiene que descargarlo.
 
 ## Calendario de eventos
 

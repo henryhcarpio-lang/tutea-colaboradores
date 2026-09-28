@@ -9,16 +9,19 @@ export default async function Inicio() {
 
   return (
     <div className="aparecer">
-      <p className="text-sm text-texto-suave">
-        {etiquetaMesPeriodo(mesPeriodoActual())}
+      <p className="text-xs font-semibold uppercase tracking-wider text-acento">
+        Sistema de TH · Tutea
       </p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight">
         Bienvenido, colaborador
       </h1>
+      <p className="mt-1 text-sm text-texto-suave">
+        {etiquetaMesPeriodo(mesPeriodoActual())}
+      </p>
       <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-texto-suave">
         {admin
           ? "Estás con la sesión de administrador: puedes crear, editar y eliminar."
-          : "Aquí tienes a mano tu horario, tus vidas del mes y los cumpleaños que se vienen. Entras y consultas: no hace falta clave ni crear una cuenta."}
+          : "Aquí tienes a mano tu horario, tus vidas del mes, quién está de vacaciones, los cumpleaños que se vienen y los documentos de la empresa. Entras y consultas: no hace falta clave ni crear una cuenta."}
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

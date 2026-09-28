@@ -25,7 +25,7 @@ type DatosValidados = {
  */
 function validar(datos: FormData): DatosValidados | string {
   const titulo = String(datos.get("titulo") ?? "").trim();
-  if (titulo.length < 2) return "Ponele un título al evento.";
+  if (titulo.length < 2) return "Ponle un título al evento.";
   if (titulo.length > 120) return "El título es demasiado largo.";
 
   const fechaTexto = String(datos.get("fecha") ?? "");

@@ -22,10 +22,11 @@ export const metadata: Metadata = {
   // Cada sección aporta su nombre; sin esto todas las pestañas se llamaban
   // igual y era imposible distinguirlas con varias abiertas.
   title: {
-    default: "Colaboradores — Tutea",
-    template: "%s — Tutea",
+    default: "Sistema de TH — Tutea",
+    template: "%s — Sistema de TH",
   },
-  description: "Horarios, vidas y cumpleaños del equipo de Tutea.",
+  description:
+    "Sistema de Talento Humano de Tutea: horarios, vidas, vacaciones, cumpleaños y documentos del equipo.",
   icons: { icon: "/tutea-logo.png" },
 };
 

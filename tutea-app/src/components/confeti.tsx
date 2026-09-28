@@ -70,7 +70,7 @@ export function Confeti({
           type="button"
           onClick={celebrar}
           disabled={enEspera}
-          title={enEspera ? "Esperá un momento" : "Tocá para más confeti"}
+          title={enEspera ? "Espera un momento" : "Toca para más confeti"}
           className="flex items-center gap-3 rounded-xl px-4 py-2 hover:bg-acento-suave disabled:cursor-default disabled:hover:bg-transparent"
         >
           <PartyPopper

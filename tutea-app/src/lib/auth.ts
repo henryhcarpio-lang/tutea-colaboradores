@@ -14,7 +14,7 @@ function secreto(): string {
   const valor = process.env.SESSION_SECRET;
   if (!valor) {
     throw new Error(
-      "Falta SESSION_SECRET en las variables de entorno. Copiá .env.example a .env y completalo.",
+      "Falta SESSION_SECRET en las variables de entorno. Copia .env.example a .env y complétalo.",
     );
   }
   return valor;
@@ -24,7 +24,7 @@ function claveAdmin(): string {
   const valor = process.env.ADMIN_PASSWORD;
   if (!valor) {
     throw new Error(
-      "Falta ADMIN_PASSWORD en las variables de entorno. Copiá .env.example a .env y completalo.",
+      "Falta ADMIN_PASSWORD en las variables de entorno. Copia .env.example a .env y complétalo.",
     );
   }
   return valor;

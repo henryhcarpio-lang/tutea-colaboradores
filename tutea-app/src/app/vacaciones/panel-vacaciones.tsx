@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import type { Collaborator } from "@prisma/client";
-import { CalendarPlus, Minus, Plus, Trash2 } from "lucide-react";
+import { CalendarPlus, Minus, Plane, Plus, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/avatar";
 import { InsigniaArea } from "@/components/insignia-area";
 import { EstadoVacio } from "@/components/seccion";
@@ -41,6 +41,8 @@ export type FilaVacaciones = {
   periodo: Periodo | null;
   /** Por qué no hay período activo, cuando `periodo` es null. */
   motivoSinPeriodo: "sin_contrato" | "vencido" | null;
+  /** Último día del goce en curso, si hoy está de vacaciones. */
+  vacacionesHasta: string | null;
 };
 
 function fechaCorta(iso: string): string {
@@ -50,6 +52,27 @@ function fechaCorta(iso: string): string {
     year: "numeric",
     timeZone: "UTC",
   });
+}
+
+/**
+ * Si la persona está o no de vacaciones hoy. Es lo único que el resto del
+ * equipo necesita saber: ¿puedo contar con esta persona o no? A gerencia se
+ * le suma hasta cuándo, para organizar el trabajo mientras tanto.
+ */
+function EstadoHoy({ hasta, admin }: { hasta: string | null; admin: boolean }) {
+  if (!hasta) {
+    return (
+      <span className="rounded-full bg-fondo px-2.5 py-0.5 text-xs text-texto-suave">
+        No está de vacaciones
+      </span>
+    );
+  }
+  return (
+    <span className="flex items-center gap-1 rounded-full bg-exito-suave px-2.5 py-0.5 text-xs font-semibold text-exito">
+      <Plane aria-hidden size={12} strokeWidth={2} />
+      De vacaciones{admin && ` hasta el ${fechaCorta(hasta)}`}
+    </span>
+  );
 }
 
 function FormularioUso({
@@ -193,17 +216,22 @@ function Tarjeta({
             <InsigniaArea area={fila.colaborador.area} />
           </div>
 
-          {!fila.periodo ? (
-            // Sin período no hay nada que dibujar como barra: el motivo
-            // (falta el contrato, o ya venció) es información operativa,
-            // así que solo se le explica a gerencia.
-            admin && (
-              <p className="mt-2 text-xs italic text-texto-suave">
-                {fila.motivoSinPeriodo === "vencido"
-                  ? "Su contrato ya venció: carga el contrato nuevo en su ficha para reabrir el cupo."
-                  : "Falta el inicio o el fin de contrato: se carga en la ficha del colaborador."}
-              </p>
-            )
+          <div className="mt-2 flex">
+            <EstadoHoy hasta={fila.vacacionesHasta} admin={admin} />
+          </div>
+
+          {/* Para el resto del equipo, las vacaciones de cada persona son
+              solo si está o no de vacaciones hoy: el saldo, las fechas del
+              contrato y el detalle de cada goce no son asunto de todos.
+              Gerencia sí ve todo, para poder gestionarlo. */}
+          {!admin ? null : !fila.periodo ? (
+            // Sin período no hay nada que dibujar como barra: se explica
+            // por qué (falta el contrato, o ya venció).
+            <p className="mt-2 text-xs italic text-texto-suave">
+              {fila.motivoSinPeriodo === "vencido"
+                ? "Su contrato ya venció: carga el contrato nuevo en su ficha para reabrir el cupo."
+                : "Falta el inicio o el fin de contrato: se carga en la ficha del colaborador."}
+            </p>
           ) : (
             <>
               {(() => {
@@ -213,10 +241,6 @@ function Tarjeta({
                 const excedente = Math.max(0, usados - p.diasAsignados);
                 return (
                   <>
-                    {/* Para el resto del equipo, las vacaciones de cada
-                        persona son solo la barra: ni las fechas del
-                        contrato ni el detalle de cada goce son asunto de
-                        todos. Gerencia sí ve todo, para poder gestionarlo. */}
                     {admin && (
                       <p className="mt-0.5 text-xs text-texto-suave">
                         Contrato del {fechaCorta(p.desde)} al {fechaCorta(p.hasta)}

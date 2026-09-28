@@ -106,7 +106,7 @@ export function TarjetaCumple({
         type="button"
         onClick={celebrar}
         disabled={enEspera}
-        title={enEspera ? "Esperá un momento" : "Tocá para más confeti"}
+        title={enEspera ? "Espera un momento" : "Toca para más confeti"}
         className="relative mx-auto block rounded-full transition-transform hover:scale-105 disabled:hover:scale-100"
       >
         <span className="block rounded-full ring-4 ring-superficie">

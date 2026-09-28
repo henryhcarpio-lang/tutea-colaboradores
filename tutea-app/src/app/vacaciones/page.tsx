@@ -20,7 +20,24 @@ export default async function Vacaciones() {
   // módulo, comparando el contrato declarado contra el período abierto.
   await asegurarPeriodosVacacion();
 
-  const porVencer = admin ? await colaboradoresConContratoPorVencer() : [];
+  const hoy = hoyEnLima();
+
+  // Quién está de vacaciones hoy: algún goce que empezó y todavía no terminó.
+  // Una sola consulta para todo el equipo, sin importar a qué contrato
+  // pertenezca el goce. Si alguien tiene dos goces que se pisan, vale el que
+  // termina más tarde.
+  const [porVencer, goceDeHoy] = await Promise.all([
+    admin ? colaboradoresConContratoPorVencer() : Promise.resolve([]),
+    prisma.vacationUsage.findMany({
+      where: { fechaInicio: { lte: hoy }, fechaFin: { gte: hoy } },
+      select: { colaboradorId: true, fechaFin: true },
+    }),
+  ]);
+  const vuelveDe = new Map<string, Date>();
+  for (const g of goceDeHoy) {
+    const previo = vuelveDe.get(g.colaboradorId);
+    if (!previo || g.fechaFin > previo) vuelveDe.set(g.colaboradorId, g.fechaFin);
+  }
 
   const colaboradores = await prisma.collaborator.findMany({
     where: { activo: true },
@@ -91,6 +108,7 @@ export default async function Vacaciones() {
             }
           : null,
         motivoSinPeriodo: p ? null : motivoSinPeriodo,
+        vacacionesHasta: vuelveDe.get(id)?.toISOString() ?? null,
       };
     },
   );
@@ -99,7 +117,11 @@ export default async function Vacaciones() {
     <>
       <EncabezadoSeccion
         titulo="Vacaciones"
-        descripcion="Días de cada colaborador en su contrato actual: cuántos tiene, cuántos usó y qué fechas tomó."
+        descripcion={
+          admin
+            ? "Días de cada colaborador en su contrato actual: cuántos tiene, cuántos usó y qué fechas tomó."
+            : "Quién está de vacaciones hoy."
+        }
         acciones={
           admin && (
             <Link
@@ -122,7 +144,7 @@ export default async function Vacaciones() {
           <ul className="mt-3 space-y-2">
             {porVencer.map((c) => {
               const faltan = Math.round(
-                (new Date(c.fechaFinContrato).getTime() - hoyEnLima().getTime()) /
+                (new Date(c.fechaFinContrato).getTime() - hoy.getTime()) /
                   (24 * 60 * 60 * 1000),
               );
               return (
@@ -145,7 +167,7 @@ export default async function Vacaciones() {
       <PanelVacaciones
         filas={filas}
         admin={admin}
-        hoy={hoyEnLima().toISOString().slice(0, 10)}
+        hoy={hoy.toISOString().slice(0, 10)}
       />
     </>
   );

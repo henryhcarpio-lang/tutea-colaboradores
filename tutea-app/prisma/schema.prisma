@@ -222,6 +222,34 @@ model VacationUsage {
   @@map("vacation_usages")
 }
 
+/// Para qué sirve un documento: las políticas (RIT, MOF) se leen en el
+/// navegador; los modelos (solicitud de vacaciones, carta de renuncia) se
+/// descargan para completarlos.
+enum CategoriaDocumento {
+  politica
+  modelo
+}
+
+/// Documento de la empresa para todo el equipo. El archivo se guarda dentro
+/// de la propia base (igual que las fotos), sin servicio de archivos aparte:
+/// son pocos documentos y livianos. El tope de tamaño lo fija la acción que
+/// los sube, no la base.
+model Documento {
+  id            String             @id @default(uuid())
+  titulo        String
+  descripcion   String?            @db.Text
+  categoria     CategoriaDocumento
+  nombreArchivo String             @map("nombre_archivo")
+  tipoMime      String             @map("tipo_mime")
+  tamanoBytes   Int                @map("tamano_bytes")
+  contenido     Bytes
+  creadoEn      DateTime           @default(now()) @map("creado_en")
+  actualizadoEn DateTime           @updatedAt @map("actualizado_en")
+
+  @@index([categoria])
+  @@map("documentos")
+}
+
 /// Evento del calendario de la empresa (feriados, campañas, hitos). No está
 /// ligado a un colaborador: es de la empresa, no de una persona.
 model CalendarEvent {

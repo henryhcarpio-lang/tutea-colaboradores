@@ -44,8 +44,7 @@ export function Navegacion({
   return (
     <header className="border-b border-borde/70 bg-superficie/80 backdrop-blur">
       <div className="mx-auto w-full max-w-6xl px-6 py-3">
-        {/* Fila 1: identidad y sesión. En pantallas chicas el menú baja a su
-            propia fila para que nada se corte ni empuje la página a lo ancho. */}
+        {/* Fila 1: identidad y sesión. */}
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
             <Image
@@ -59,22 +58,10 @@ export function Navegacion({
             <span className="text-[15px] font-semibold tracking-tight">
               Tutea
             </span>
+            <span className="border-l border-borde pl-2.5 text-sm text-texto-suave">
+              Sistema de TH
+            </span>
           </Link>
-
-          <nav className="hidden items-center gap-1 lg:flex">
-            {visibles.map(({ href, etiqueta, Icono }) => (
-              <Link
-                key={href}
-                href={href}
-                aria-current={esActivo(href) ? "page" : undefined}
-                className={claseEnlace(esActivo(href))}
-              >
-                <Icono aria-hidden size={16} strokeWidth={1.75} />
-                {etiqueta}
-                {href === "/vacaciones" && <Aviso cantidad={avisosVacaciones} />}
-              </Link>
-            ))}
-          </nav>
 
           <div className="flex shrink-0 items-center gap-3">
             {admin ? (
@@ -106,8 +93,12 @@ export function Navegacion({
           </div>
         </div>
 
-        {/* Fila 2, solo en pantallas chicas. Scroll horizontal propio si no entra. */}
-        <nav className="-mx-1 mt-2 flex items-center gap-1 overflow-x-auto pb-0.5 lg:hidden">
+        {/* Fila 2: el menú, en todas las pantallas. Con la marca "Sistema de
+            TH" y ocho módulos ya no entraba todo en una fila ni en un monitor
+            ancho (la sesión de admin quedaba fuera de la pantalla), y cada
+            módulo nuevo lo iba a empeorar. Scroll horizontal propio si en un
+            celular no entra. */}
+        <nav className="-mx-1 mt-2 flex items-center gap-1 overflow-x-auto pb-0.5">
           {visibles.map(({ href, etiqueta, Icono }) => (
             <Link
               key={href}

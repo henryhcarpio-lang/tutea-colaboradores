@@ -2,6 +2,7 @@ import {
   CalendarClock,
   CalendarRange,
   Cake,
+  FolderOpen,
   Heart,
   House,
   Plane,
@@ -68,8 +69,16 @@ export const MODULOS: Modulo[] = [
     href: "/vacaciones",
     etiqueta: "Vacaciones",
     detalle:
-      "Días de vacaciones de cada colaborador: cuántos tiene, cuántos usó y qué fechas tomó.",
+      "Quién está de vacaciones hoy. Gerencia ve además el saldo de cada contrato.",
     Icono: Plane,
+    soloAdmin: false,
+  },
+  {
+    href: "/documentos",
+    etiqueta: "Documentos",
+    detalle:
+      "Las políticas de la empresa (RIT, MOF) y los modelos para tus trámites: vacaciones, renuncia y más.",
+    Icono: FolderOpen,
     soloAdmin: false,
   },
   {
