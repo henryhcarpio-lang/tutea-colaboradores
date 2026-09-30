@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Download, Eye, FileText } from "lucide-react";
 import { esAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -57,10 +58,10 @@ export default async function Documentos() {
                 <ul className="mt-4 space-y-3">
                   {deEsta.map((d) => {
                     const extension = extensionDe(d.nombreArchivo);
-                    // Solo un PDF se puede leer dentro del navegador; un Word o
-                    // un Excel siempre se descargan, aunque sean una política.
-                    const seLee = categoria === "politica" && extension === "pdf";
-                    const url = `/api/documentos/${d.id}`;
+                    // Una política es solo de lectura: se abre en el visor del
+                    // sistema y no tiene botón de descarga. Un modelo solo se
+                    // descarga, porque la idea es completarlo.
+                    const esPolitica = categoria === "politica";
                     return (
                       <li
                         key={d.id}
@@ -81,28 +82,23 @@ export default async function Documentos() {
                         </div>
 
                         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
-                          {seLee && (
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener"
+                          {esPolitica ? (
+                            <Link
+                              href={`/documentos/${d.id}`}
                               className="flex items-center gap-1.5 rounded-lg bg-acento px-3 py-1.5 text-sm font-medium text-white hover:bg-acento-fuerte"
                             >
                               <Eye aria-hidden size={15} strokeWidth={1.75} />
                               Ver
+                            </Link>
+                          ) : (
+                            <a
+                              href={`/api/documentos/${d.id}`}
+                              className="flex items-center gap-1.5 rounded-lg bg-acento px-3 py-1.5 text-sm font-medium text-white hover:bg-acento-fuerte"
+                            >
+                              <Download aria-hidden size={15} strokeWidth={1.75} />
+                              Descargar
                             </a>
                           )}
-                          <a
-                            href={`${url}?descargar=1`}
-                            className={
-                              seLee
-                                ? "flex items-center gap-1.5 rounded-lg border border-borde px-3 py-1.5 text-sm hover:bg-fondo"
-                                : "flex items-center gap-1.5 rounded-lg bg-acento px-3 py-1.5 text-sm font-medium text-white hover:bg-acento-fuerte"
-                            }
-                          >
-                            <Download aria-hidden size={15} strokeWidth={1.75} />
-                            Descargar
-                          </a>
                           {admin && <EliminarDocumento id={d.id} />}
                         </div>
                       </li>

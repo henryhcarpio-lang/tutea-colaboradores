@@ -223,15 +223,25 @@ detalle completo (quién, cuándo) vive en un banner dentro de `/vacaciones`.
 
 ## Documentos
 
-Dos secciones en `/documentos`: **políticas** (RIT, MOF), que se leen en el
-navegador, y **modelos** (solicitud de vacaciones, carta de renuncia), que se
+Dos secciones en `/documentos`: **políticas** (RIT, MOF), que son **solo de
+lectura**, y **modelos** (solicitud de vacaciones, carta de renuncia), que se
 descargan para completarlos. Todo el equipo los ve sin clave; solo admin sube
 y elimina (`src/app/documentos/acciones.ts`, con confirmación al eliminar).
 
 El archivo se guarda como bytes en la tabla `documentos` y se entrega por
-`/api/documentos/[id]`: `inline` para una política en PDF, `attachment` para
-todo lo demás o con `?descargar=1`. El listado nunca trae los bytes, solo
-título, tamaño y extensión.
+`/api/documentos/[id]`. El listado nunca trae los bytes, solo título, tamaño y
+extensión.
+
+**Las políticas no se descargan.** Se suben solo en PDF y se leen en
+`/documentos/[id]`, donde pdf.js (`visor-politica.tsx`) dibuja cada página en
+un lienzo en vez de abrir el visor propio del navegador, que trae botones de
+descargar e imprimir. Además: clic derecho bloqueado, al imprimir sale un
+aviso en vez del documento, la API nunca las entrega como `attachment` (ni con
+`?descargar=1`), no se guardan en caché, y abrir el enlace del archivo directo
+en una pestaña (`Sec-Fetch-Dest: document`) redirige al visor. Esto frena la
+descarga del uso normal; no es infalible: quien use las herramientas de
+desarrollador o saque una captura puede quedarse con una copia, porque lo
+que se ve en pantalla pasa por su navegador.
 
 **Tope de 4 MB por archivo** (`TAMANO_MAXIMO_BYTES`, en `src/lib/documentos.ts`):
 Vercel no acepta más de 4,5 MB por petición, y el límite de los server actions

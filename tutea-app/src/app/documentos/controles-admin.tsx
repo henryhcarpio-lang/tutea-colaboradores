@@ -57,7 +57,7 @@ function Formulario({ onCerrar }: { onCerrar: () => void }) {
           >
             {LISTA_CATEGORIAS.map((c) => (
               <option key={c} value={c}>
-                {c === "politica" ? "Política (se lee en el navegador)" : "Modelo (se descarga)"}
+                {c === "politica" ? "Política (solo lectura, en PDF)" : "Modelo (se descarga)"}
               </option>
             ))}
           </select>
@@ -105,8 +105,9 @@ function Formulario({ onCerrar }: { onCerrar: () => void }) {
       </div>
 
       <p className="mt-3 text-xs text-texto-suave">
-        PDF, Word, Excel u ODT, hasta {tamanoLegible(TAMANO_MAXIMO_BYTES)}. Para
-        las políticas conviene PDF: se puede leer directo en el navegador.
+        {categoria === "politica"
+          ? `Solo PDF, hasta ${tamanoLegible(TAMANO_MAXIMO_BYTES)}. El equipo lo va a poder leer en pantalla, pero no descargar.`
+          : `PDF, Word, Excel u ODT, hasta ${tamanoLegible(TAMANO_MAXIMO_BYTES)}. El equipo lo va a poder descargar.`}
       </p>
 
       {(errorArchivo || estado.error) && (

@@ -51,6 +51,11 @@ export async function subirDocumento(
   if (!tipoMime) {
     return { error: "Solo se aceptan PDF, Word (.doc, .docx), Excel (.xls, .xlsx) u ODT." };
   }
+  // Una política solo se muestra en pantalla, nunca se descarga, y lo único
+  // que se puede mostrar sin entregar el archivo es un PDF.
+  if (categoria === "politica" && extensionDe(archivo.name) !== "pdf") {
+    return { error: "Las políticas se suben en PDF: se muestran en pantalla y no se pueden descargar." };
+  }
 
   await prisma.documento.create({
     data: {

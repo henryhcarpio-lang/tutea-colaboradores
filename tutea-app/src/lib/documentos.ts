@@ -35,7 +35,7 @@ export const CATEGORIAS: Record<
   politica: {
     titulo: "Políticas de la empresa",
     detalle:
-      "El Reglamento Interno de Trabajo (RIT), el Manual de Organización y Funciones (MOF) y las demás normas de Tutea.",
+      "El Reglamento Interno de Trabajo (RIT), el Manual de Organización y Funciones (MOF) y las demás normas de Tutea. Son solo de consulta: se leen aquí y no se descargan.",
   },
   modelo: {
     titulo: "Modelos para descargar",

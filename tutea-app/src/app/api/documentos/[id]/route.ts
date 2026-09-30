@@ -3,12 +3,17 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Entrega un documento de la empresa. Es público a propósito, igual que el
- * resto del sistema: el equipo entra sin clave y necesita leer el RIT o
- * bajar un modelo.
+ * resto del sistema: el equipo entra sin clave.
  *
- * Una política se abre en el navegador (`inline`) para leerla sin guardarla;
- * un modelo se descarga (`attachment`), porque la idea es completarlo. Con
- * `?descargar=1` cualquier documento se descarga igual.
+ * - Un **modelo** se descarga (`attachment`): la idea es completarlo.
+ * - Una **política** (RIT, MOF) es solo de lectura: la pide el visor de
+ *   /documentos/[id] con `fetch` y la dibuja página por página, sin el visor
+ *   propio del navegador, que trae botón de descargar. Si alguien abre esta
+ *   URL directo en una pestaña (`Sec-Fetch-Dest: document`), se lo manda al
+ *   visor en vez de entregarle el PDF, y nunca sale como `attachment`.
+ *
+ * Esto evita la descarga para el uso normal, no para quien se lo proponga:
+ * lo que se muestra en pantalla viaja al navegador de alguna forma.
  */
 export async function GET(
   peticion: NextRequest,
@@ -22,8 +27,20 @@ export async function GET(
   });
   if (!documento) return new NextResponse(null, { status: 404 });
 
-  const forzarDescarga = peticion.nextUrl.searchParams.get("descargar") === "1";
-  const modo = documento.categoria === "politica" && !forzarDescarga ? "inline" : "attachment";
+  if (documento.categoria === "politica") {
+    if (peticion.headers.get("sec-fetch-dest") === "document") {
+      return NextResponse.redirect(new URL(`/documentos/${id}`, peticion.url));
+    }
+    return new NextResponse(documento.contenido, {
+      headers: {
+        "Content-Type": documento.tipoMime,
+        "Content-Disposition": "inline",
+        "X-Content-Type-Options": "nosniff",
+        // Sin caché: no dejar una copia del archivo guardada en el equipo.
+        "Cache-Control": "no-store",
+      },
+    });
+  }
 
   // El nombre puede traer tildes o eñes ("Solicitud de vacaciones.docx"):
   // `filename*` lo lleva codificado para los navegadores actuales, y
@@ -37,7 +54,7 @@ export async function GET(
   return new NextResponse(documento.contenido, {
     headers: {
       "Content-Type": documento.tipoMime,
-      "Content-Disposition": `${modo}; filename="${nombreAscii}"; filename*=UTF-8''${encodeURIComponent(documento.nombreArchivo)}`,
+      "Content-Disposition": `attachment; filename="${nombreAscii}"; filename*=UTF-8''${encodeURIComponent(documento.nombreArchivo)}`,
       // Privado: un documento que se borra no debe quedar servido desde un
       // caché compartido. En el navegador de cada uno sí dura una hora.
       "Cache-Control": "private, max-age=3600",
